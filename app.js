@@ -338,22 +338,34 @@ function renderPractice(container) {
     const line = document.createElement('div');
     line.className = 'words-line';
     const lockedSet = new Set(locked);
-    words.forEach((w, i) => {
-      if (lockedSet.has(i)) {
+    let wi = 0;
+    while (wi < words.length) {
+      if (lockedSet.has(wi)) {
         const span = document.createElement('span');
         span.className = 'word-lock';
-        span.textContent = w;
+        span.textContent = words[wi];
         line.appendChild(span);
+        wi++;
       } else {
+        const start = wi;
+        let charCount = 0;
+        const indices = [];
+        while (wi < words.length && !lockedSet.has(wi)) {
+          charCount += words[wi].length;
+          indices.push(wi);
+          wi++;
+        }
+        const spaceCount = Math.max(0, indices.length - 1);
+        const totalLen = charCount + spaceCount;
         const input = document.createElement('input');
         input.className = 'word-gap';
-        input.dataset.srcIndex = i;
-        input.value = gapDrafts[i] || '';
-        input.size = Math.max(3, w.length);
+        input.dataset.indices = JSON.stringify(indices);
+        input.value = gapDrafts[start] || '';
+        input.size = Math.max(3, totalLen + 2);
         input.placeholder = '?';
         line.appendChild(input);
       }
-    });
+    }
     dictationArea.appendChild(line);
   }
 
@@ -452,13 +464,21 @@ function renderPractice(container) {
       const newDrafts = {};
       let added = 0;
       inputs.forEach(inp => {
-        const si = +inp.dataset.srcIndex;
+        const indices = JSON.parse(inp.dataset.indices);
         const val = inp.value.trim();
-        if (normalizeWord(val) === normalizeWord(words[si])) {
-          lockedSet.add(si);
-          added++;
-        } else {
-          newDrafts[si] = ''; // 错误的清空，继续要求填写
+        const userWords = val.split(/\s+/);
+        let blockMatchAll = true;
+        indices.forEach((srcIdx, k) => {
+          const uw = userWords[k] || '';
+          if (normalizeWord(uw) === normalizeWord(words[srcIdx])) {
+            lockedSet.add(srcIdx);
+            added++;
+          } else {
+            blockMatchAll = false;
+          }
+        });
+        if (!blockMatchAll) {
+          newDrafts[indices[0]] = val;
         }
       });
       const newLocked = Array.from(lockedSet).sort((a, b) => a - b);
@@ -493,8 +513,8 @@ function saveCurrentDraft(progress, idx, words, card) {
   const inputs = card.querySelectorAll('.word-gap');
   const drafts = {};
   inputs.forEach(inp => {
-    const i = +inp.dataset.srcIndex;
-    drafts[i] = inp.value.trim();
+    const indices = JSON.parse(inp.dataset.indices);
+    drafts[indices[0]] = inp.value.trim();
   });
   state.gapDrafts = drafts;
   progress.sentenceStates[idx] = state;
