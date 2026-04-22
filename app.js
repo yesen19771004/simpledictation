@@ -33,6 +33,32 @@ function showToast(msg) {
 let currentPage = 'home';
 let activeSessionId = null;
 
+// Theme
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+  try { localStorage.setItem('dictation-theme', theme); } catch {}
+}
+function initTheme() {
+  let theme = 'light';
+  try {
+    const saved = localStorage.getItem('dictation-theme');
+    if (saved) theme = saved;
+    else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+  } catch {}
+  applyTheme(theme);
+}
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+document.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  const btn = document.getElementById('theme-toggle');
+  if (btn) btn.addEventListener('click', toggleTheme);
+});
+
 function setPage(page) {
   if (currentPage === 'practice' && activeSessionId && page !== 'practice') {
     const main = document.getElementById('main');
