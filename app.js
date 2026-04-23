@@ -64,6 +64,21 @@ function showToast(msg) {
 
 let currentPage = 'home';
 let activeSessionId = null;
+let currentTogglePlay = null;
+
+// Global keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (currentPage !== 'practice' || !currentTogglePlay) return;
+  if (e.code === 'Space') {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    if (tag === 'textarea' || tag === 'input') {
+      // In input field: require Ctrl+Space to avoid typing conflicts
+      if (!e.ctrlKey) return;
+    }
+    e.preventDefault();
+    currentTogglePlay();
+  }
+});
 
 // Theme
 function applyTheme(theme) {
@@ -477,7 +492,7 @@ function renderPractice(container) {
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句</label>
         <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
+        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放</div>
       </div>
     `;
   } else {
@@ -515,7 +530,7 @@ function renderPractice(container) {
     dictationArea.appendChild(line);
     const hint = document.createElement('div');
     hint.className = 'keyboard-hint';
-    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查';
+    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Ctrl</kbd>+<kbd>Space</kbd> 播放';
     dictationArea.appendChild(hint);
   }
 
@@ -536,7 +551,7 @@ function renderPractice(container) {
     playStatus.textContent = playing ? '播放中…' : '';
   }
 
-  playBtn.addEventListener('click', () => {
+  function togglePlay() {
     if (isPlaying) {
       window.speechSynthesis.cancel();
       setPlaying(false);
@@ -548,7 +563,9 @@ function renderPractice(container) {
       if (!ok) { showToast('当前浏览器不支持语音播放'); return; }
       setPlaying(true);
     }
-  });
+  }
+  currentTogglePlay = togglePlay;
+  playBtn.addEventListener('click', togglePlay);
 
   // Navigation
   card.querySelector('#btn-prev').addEventListener('click', () => {
