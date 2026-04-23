@@ -1011,13 +1011,31 @@ function renderDrill(container) {
     return;
   }
 
+  const savedLevel = (() => {
+    try { return localStorage.getItem('dictation-drill-level') || ''; } catch { return ''; }
+  })();
+  const levels = ['A1','A2','B1','B2','C1','C2'];
+  const defaultLevel = savedLevel && levels.includes(savedLevel) ? savedLevel : 'B1';
+
   const MAX_PROMPT_WORDS = 30;
   const promptWords = getMistakeWordsForPrompt(MAX_PROMPT_WORDS);
   const allPromptWords = Object.values(loadMistakes());
-  const promptText = promptWords.length
-    ? `请写一段自然流畅的英文短文，尽量包含以下单词：${promptWords.join('、')}。这些单词是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。短文长度适中（约 150-250 词），主题不限，语气轻松自然即可。`
-    : '';
   const isTruncated = allPromptWords.length > MAX_PROMPT_WORDS;
+
+  function buildPromptText(level) {
+    const levelDesc = {
+      A1: '使用非常基础的词汇和简单句型，适合英语初学者',
+      A2: '使用基础词汇和常见句型，句子较短，语法简单',
+      B1: '使用中等难度词汇，句子结构适中，有一定复杂度',
+      B2: '使用较丰富词汇，包含复合句和从句，难度适中偏高',
+      C1: '使用较高级词汇和复杂句型，表达流畅自然',
+      C2: '使用学术或高级词汇，句式复杂多变，接近母语水平'
+    };
+    if (!promptWords.length) return '';
+    return `请写一段自然流畅的英文短文，尽量包含以下单词：${promptWords.join('、')}。这些单词是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。\n\n文章难度要求：CEFR ${level} 级别。${levelDesc[level]}。短文长度适中（约 150-250 词），主题不限，语气轻松自然即可。`;
+  }
+
+  const promptText = buildPromptText(defaultLevel);
 
   card.innerHTML = `
     <div class="card-title">专项训练</div>
@@ -1035,9 +1053,15 @@ function renderDrill(container) {
     </div>
 
     <div id="prompt-area" style="display:none;margin-bottom:20px">
+      <div class="form-group" style="margin-bottom:12px">
+        <label>选择文章难度</label>
+        <div class="level-filter" id="drill-level-filter" style="margin-bottom:0">
+          ${levels.map(lv => `<button class="btn btn-sm ${lv === defaultLevel ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
+        </div>
+      </div>
       <div class="form-group" style="margin-bottom:8px">
         <label>LLM 提示词${isTruncated ? `（已从 ${allPromptWords.length} 个错词中筛选出 ${promptWords.length} 个）` : `（包含 ${promptWords.length} 个错词）`}</label>
-        <textarea id="drill-prompt" readonly style="min-height:100px;background:var(--bg);cursor:text">${escapeHtml(promptText)}</textarea>
+        <textarea id="drill-prompt" readonly style="min-height:120px;background:var(--bg);cursor:text">${escapeHtml(promptText)}</textarea>
       </div>
       <div style="display:flex;gap:8px">
         <button class="btn btn-secondary" id="btn-copy-prompt">${ICONS.copy}复制提示词</button>
@@ -1061,6 +1085,26 @@ function renderDrill(container) {
     </div>
   `;
   container.appendChild(card);
+
+  let currentLevel = defaultLevel;
+
+  // Level filter click
+  const levelFilter = card.querySelector('#drill-level-filter');
+  if (levelFilter) {
+    levelFilter.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-level]');
+      if (!btn) return;
+      currentLevel = btn.dataset.level;
+      try { localStorage.setItem('dictation-drill-level', currentLevel); } catch {}
+      // Update button styles
+      levelFilter.querySelectorAll('button').forEach(b => {
+        b.className = `btn btn-sm ${b.dataset.level === currentLevel ? 'btn-primary' : 'btn-secondary'}`;
+      });
+      // Regenerate prompt
+      const newPrompt = buildPromptText(currentLevel);
+      card.querySelector('#drill-prompt').value = newPrompt;
+    });
+  }
 
   // Toggle prompt area
   card.querySelector('#btn-gen-prompt').addEventListener('click', () => {

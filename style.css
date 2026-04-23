@@ -131,19 +131,29 @@ body {
   background: var(--border-subtle);
   padding: 4px;
   border-radius: var(--radius-lg);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  max-width: calc(100vw - 120px);
+}
+
+.nav-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .nav-tabs button {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  padding: 7px 16px;
+  padding: 7px 14px;
   border-radius: var(--radius);
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
   transition: all var(--transition);
   position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .nav-tabs button:hover {
