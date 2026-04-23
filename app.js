@@ -67,12 +67,17 @@ function getTopMistakes(n = 30) {
     .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
     .slice(0, n);
 }
-function getMistakeWordsForPrompt(minCount = 2) {
+function getMistakeWordsForPrompt(maxWords = 30, minCount = 2) {
   const m = loadMistakes();
-  return Object.values(m)
+  let words = Object.values(m)
     .filter(x => x.count >= minCount)
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
     .map(x => x.word);
+  // Only truncate when there are too many words to keep prompt concise
+  if (words.length > maxWords) {
+    words = words.slice(0, maxWords);
+  }
+  return words;
 }
 
 const ICONS = {
@@ -1007,10 +1012,13 @@ function renderDrill(container) {
     return;
   }
 
-  const promptWords = getMistakeWordsForPrompt(2);
+  const MAX_PROMPT_WORDS = 30;
+  const promptWords = getMistakeWordsForPrompt(MAX_PROMPT_WORDS);
+  const allPromptWords = Object.values(loadMistakes()).filter(x => x.count >= 2);
   const promptText = promptWords.length
     ? `请写一段自然流畅的英文短文，尽量包含以下单词：${promptWords.join('、')}。这些单词是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。短文长度适中（约 150-250 词），主题不限，语气轻松自然即可。`
     : '';
+  const isTruncated = allPromptWords.length > MAX_PROMPT_WORDS;
 
   card.innerHTML = `
     <div class="card-title">专项训练</div>
@@ -1029,7 +1037,7 @@ function renderDrill(container) {
 
     <div id="prompt-area" style="display:none;margin-bottom:20px">
       <div class="form-group" style="margin-bottom:8px">
-        <label>LLM 提示词（已按出错频率筛选）</label>
+        <label>LLM 提示词${isTruncated ? `（已从 ${allPromptWords.length} 个高频错词中筛选出 ${promptWords.length} 个）` : `（包含 ${promptWords.length} 个高频错词）`}</label>
         <textarea id="drill-prompt" readonly style="min-height:100px;background:var(--bg);cursor:text">${escapeHtml(promptText)}</textarea>
       </div>
       <div style="display:flex;gap:8px">
