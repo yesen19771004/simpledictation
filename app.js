@@ -68,8 +68,21 @@ let currentTogglePlay = null;
 
 // Global keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  if (currentPage !== 'practice' || !currentTogglePlay) return;
-  if (e.code === 'Space') {
+  if (currentPage !== 'practice') return;
+
+  // Enter: focus first input when not already in one
+  if (e.code === 'Enter' && !e.ctrlKey && !e.shiftKey) {
+    const tag = document.activeElement?.tagName?.toLowerCase();
+    if (tag !== 'textarea' && tag !== 'input') {
+      e.preventDefault();
+      const firstInput = document.querySelector('#full-input, .word-gap');
+      if (firstInput) firstInput.focus();
+    }
+    return;
+  }
+
+  // Space: play/pause
+  if (e.code === 'Space' && currentTogglePlay) {
     const tag = document.activeElement?.tagName?.toLowerCase();
     if (tag === 'textarea' || tag === 'input') {
       // In input field: require Shift+Space to avoid typing conflicts
@@ -492,7 +505,7 @@ function renderPractice(container) {
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句</label>
         <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放</div>
+        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
       </div>
     `;
   } else {
@@ -530,7 +543,7 @@ function renderPractice(container) {
     dictationArea.appendChild(line);
     const hint = document.createElement('div');
     hint.className = 'keyboard-hint';
-    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放';
+    hint.innerHTML = '<kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查';
     dictationArea.appendChild(hint);
   }
 
