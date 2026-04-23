@@ -505,7 +505,7 @@ function renderPractice(container) {
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句</label>
         <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
+        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
       </div>
     `;
   } else {
