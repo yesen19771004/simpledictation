@@ -950,6 +950,66 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   box-shadow: 0 1px 0 var(--border);
 }
 
+/* Voice Picker */
+.voice-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+.voice-picker-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+}
+
+.voice-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.voice-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--border);
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+
+.voice-chip:hover {
+  border-color: var(--primary);
+  color: var(--text);
+  background: var(--primary-soft);
+}
+
+.voice-chip.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: var(--bg-elevated);
+}
+
+.voice-region {
+  font-size: 10px;
+  font-weight: 700;
+  opacity: 0.7;
+  letter-spacing: 0.5px;
+}
+
 /* Drill wrong word highlight */
 .drill-wrong {
   display: inline-flex;

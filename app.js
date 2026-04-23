@@ -405,10 +405,23 @@ function escapeHtml(text) {
 
 let selectedVoice = null;
 
+function getEnglishVoices() {
+  if (!window.speechSynthesis) return [];
+  const voices = window.speechSynthesis.getVoices() || [];
+  return voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+}
+
 function pickBestVoice() {
-  if (!window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices();
-  if (!voices || voices.length === 0) return null;
+  const voices = getEnglishVoices();
+  if (voices.length === 0) return null;
+  // 检查用户是否有保存的偏好
+  const savedName = (() => {
+    try { return localStorage.getItem('dictation-voice-name'); } catch { return null; }
+  })();
+  if (savedName) {
+    const saved = voices.find(v => v.name === savedName);
+    if (saved) return saved;
+  }
   // 优先级：知名高质量英语语音优先
   const preferred = [
     'Google US English',
@@ -440,13 +453,64 @@ function pickBestVoice() {
   if (v) return v;
   v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-gb'));
   if (v) return v;
-  v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-  if (v) return v;
   return voices[0];
 }
 
 function initVoices() {
   selectedVoice = pickBestVoice();
+}
+
+function formatVoiceLabel(voice) {
+  // 简化名称：去掉冗余前缀
+  let name = voice.name
+    .replace(/^Microsoft /, '')
+    .replace(/ Desktop$/, '')
+    .replace(/ Google$/, '')
+    .replace(/^Google /, '');
+  // 提取地区代码
+  const lang = voice.lang || 'en';
+  const region = lang.split('-')[1] || '';
+  const regionLabel = region === 'US' ? 'US' : region === 'GB' ? 'GB' : region === 'AU' ? 'AU' : region === 'IN' ? 'IN' : region;
+  return { name, region: regionLabel };
+}
+
+function buildVoicePickerHTML(selectedName) {
+  const voices = getEnglishVoices();
+  if (voices.length <= 1) return '';
+  const items = voices.map(v => {
+    const { name, region } = formatVoiceLabel(v);
+    const isActive = v.name === selectedName;
+    return `<button class="voice-chip ${isActive ? 'active' : ''}" data-voice="${escapeHtml(v.name)}" title="${escapeHtml(v.name)}">${escapeHtml(name)}${region ? `<span class="voice-region">${region}</span>` : ''}</button>`;
+  }).join('');
+  return `<div class="voice-picker"><div class="voice-picker-label">语音</div><div class="voice-chips">${items}</div></div>`;
+}
+
+function attachVoicePickerListeners(container) {
+  const chips = container.querySelector('.voice-chips');
+  if (!chips) return;
+  chips.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-voice]');
+    if (!btn) return;
+    const name = btn.dataset.voice;
+    const voices = getEnglishVoices();
+    const voice = voices.find(v => v.name === name);
+    if (voice) {
+      selectedVoice = voice;
+      try { localStorage.setItem('dictation-voice-name', voice.name); } catch {}
+      // Update UI
+      chips.querySelectorAll('.voice-chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.voice === name);
+      });
+      // Preview
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance('Hello');
+        u.voice = voice;
+        u.volume = 0.3;
+        window.speechSynthesis.speak(u);
+      }
+    }
+  });
 }
 
 // macOS Chrome 第一次 getVoices() 可能为空，需要等 voiceschanged
@@ -544,6 +608,7 @@ function renderPractice(container) {
       </div>
       <span id="play-status" style="font-size:13px;color:var(--text-muted);font-weight:500"></span>
     </div>
+    ${buildVoicePickerHTML(selectedVoice?.name)}
     <div class="dictation-area" id="dictation-area"></div>
     <div class="action-bar">
       <button class="btn btn-primary" id="btn-check">${ICONS.check}提交检查</button>
@@ -788,6 +853,9 @@ function renderPractice(container) {
       renderMain();
     }
   });
+
+  // Voice picker
+  attachVoicePickerListeners(card);
 }
 
 function saveCurrentDraft(progress, idx, words, card) {
@@ -1180,6 +1248,7 @@ function renderDrillPractice(container) {
         <span class="speed-value" id="rate-value">1.0x</span>
       </div>
     </div>
+    ${buildVoicePickerHTML(selectedVoice?.name)}
     <div class="dictation-area">
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句（只有一次机会）</label>
@@ -1294,6 +1363,9 @@ function renderDrillPractice(container) {
   }
 
   card.querySelector('#btn-drill-check').addEventListener('click', doDrillCheck);
+
+  // Voice picker
+  attachVoicePickerListeners(card);
 }
 
 function finishDrill() {
