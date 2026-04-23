@@ -202,7 +202,7 @@ function setPage(page) {
   }
   currentPage = page;
   const nav = document.getElementById('nav-tabs');
-  nav.style.display = (page === 'home' || page === 'library' || page === 'drill' || page === 'create' || page === 'help') ? 'flex' : 'none';
+  nav.style.display = (page === 'home' || page === 'library' || page === 'drill' || page === 'help') ? 'flex' : 'none';
   nav.querySelectorAll('button').forEach(b => {
     b.classList.toggle('active', b.dataset.page === page);
   });
