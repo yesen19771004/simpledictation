@@ -18,6 +18,28 @@ function saveSessions(sessions) {
 }
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }
 
+const ICONS = {
+  play: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
+  pause: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
+  home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`,
+  chevronLeft: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>`,
+  chevronRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>`,
+  check: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+  eye: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  skipForward: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"/><line x1="19" y1="5" x2="19" y2="19"/></svg>`,
+  rotateCcw: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>`,
+  trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  x: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  sparkles: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`,
+  bookOpen: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+  arrowRight: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+  pencil: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  volume: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
+  library: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
+  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+};
+
 function splitSentences(text) {
   const parts = text.match(/[^.!?]+[.!?]+|[^.!?]+/g) || [];
   return parts.map(s => s.trim()).filter(s => s.length > 0);
@@ -120,8 +142,8 @@ function renderHome(container) {
         <h3>开始你的第一次听写</h3>
         <p>从练习库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">浏览练习库</button>
-          <button class="btn btn-secondary" onclick="setPage('create')">新建练习</button>
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}浏览练习库</button>
+          <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建练习</button>
         </div>
       </div>`;
   } else {
@@ -147,15 +169,15 @@ function renderHome(container) {
           </div>
         </div>
         <div class="session-actions">
-          <button class="btn btn-primary" data-action="continue" data-id="${s.id}">继续</button>
-          <button class="btn btn-secondary" data-action="restart" data-id="${s.id}">重练</button>
-          <button class="btn btn-danger" data-action="delete" data-id="${s.id}">删除</button>
+          <button class="btn btn-primary" data-action="continue" data-id="${s.id}">${ICONS.play}继续</button>
+          <button class="btn btn-secondary" data-action="restart" data-id="${s.id}">${ICONS.rotateCcw}重练</button>
+          <button class="btn btn-danger" data-action="delete" data-id="${s.id}">${ICONS.trash}删除</button>
         </div>
       </div>`;
     });
     html += `</div>
     <div style="margin-top:20px">
-      <button class="btn btn-secondary" onclick="setPage('create')">+ 新建练习</button>
+      <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建练习</button>
     </div>`;
     card.innerHTML = html;
   }
@@ -202,8 +224,8 @@ function renderCreate(container) {
       <textarea id="create-text" placeholder="在此粘贴一段英文..."></textarea>
     </div>
     <div class="action-bar" style="padding:0;border:none;background:transparent">
-      <button class="btn btn-primary" id="btn-create">生成练习</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">取消</button>
+      <button class="btn btn-primary" id="btn-create">${ICONS.sparkles}生成练习</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.x}取消</button>
     </div>
   `;
   container.appendChild(card);
@@ -406,9 +428,9 @@ function renderPractice(container) {
         </div>
       </div>
       <div class="session-actions">
-        <button class="btn btn-sm btn-secondary" id="btn-prev" ${idx <= 0 ? 'disabled' : ''}>上一句</button>
-        <button class="btn btn-sm btn-secondary" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''}>下一句</button>
-        <button class="btn btn-sm btn-secondary" onclick="setPage('home')">首页</button>
+        <button class="btn btn-sm btn-secondary btn-icon" id="btn-prev" ${idx <= 0 ? 'disabled' : ''} title="上一句">${ICONS.chevronLeft}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''} title="下一句">${ICONS.chevronRight}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('home')" title="首页">${ICONS.home}</button>
       </div>
     </div>
     <div class="player-bar">
@@ -425,9 +447,9 @@ function renderPractice(container) {
     </div>
     <div class="dictation-area" id="dictation-area"></div>
     <div class="action-bar">
-      <button class="btn btn-primary" id="btn-check">提交检查</button>
-      <button class="btn btn-secondary" id="btn-show-original">显示原文</button>
-      <button class="btn btn-secondary" id="btn-skip">跳过</button>
+      <button class="btn btn-primary" id="btn-check">${ICONS.check}提交检查</button>
+      <button class="btn btn-secondary" id="btn-show-original">${ICONS.eye}显示原文</button>
+      <button class="btn btn-secondary" id="btn-skip">${ICONS.skipForward}跳过</button>
     </div>
     <div class="side-panel" id="side-panel" style="display:none">
       <div class="accordion">
@@ -692,8 +714,8 @@ function renderResult(container) {
       </div>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-primary" id="btn-restart">再次练习</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">返回首页</button>
+      <button class="btn btn-primary" id="btn-restart">${ICONS.rotateCcw}再次练习</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
     </div>
   `;
   container.appendChild(card);
@@ -771,8 +793,8 @@ function renderLibrary(container) {
               </div>
             </div>
             <div class="session-actions">
-              <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? '继续' : '开始练习'}</button>
-              ${st.imported ? `<button class="btn btn-secondary" data-action="restart" data-id="${l.id}">重置</button>` : ''}
+              <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? ICONS.play + '继续' : ICONS.play + '开始练习'}</button>
+              ${st.imported ? `<button class="btn btn-secondary" data-action="restart" data-id="${l.id}">${ICONS.rotateCcw}重置</button>` : ''}
             </div>
           </div>`;
         });
