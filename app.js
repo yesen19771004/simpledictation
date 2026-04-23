@@ -240,11 +240,12 @@ function renderHome(container) {
         <p>从资料库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}浏览资料库</button>
-          <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建练习</button>
+          <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建听写</button>
+          <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
         </div>
       </div>`;
   } else {
-    let html = `<div class="card-title" style="margin-bottom:16px">已有练习</div>
+    let html = `<div class="card-title" style="margin-bottom:16px">我的听写</div>
       <div class="session-list">`;
     sessions.forEach(s => {
       const progress = s.progress || {};
@@ -273,8 +274,9 @@ function renderHome(container) {
       </div>`;
     });
     html += `</div>
-    <div style="margin-top:20px">
-      <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建练习</button>
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建听写</button>
+      <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
     </div>`;
     card.innerHTML = html;
   }
@@ -310,7 +312,7 @@ function renderCreate(container) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
-    <div class="card-title">新建练习</div>
+    <div class="card-title">新建听写</div>
     <div class="card-desc">输入英文原文，系统会自动按句切分，生成听写练习。</div>
     <div class="form-group">
       <label>标题（可选）</label>
@@ -527,7 +529,7 @@ function renderPractice(container) {
       <div class="session-actions">
         <button class="btn btn-sm btn-secondary btn-icon" id="btn-prev" ${idx <= 0 ? 'disabled' : ''} title="上一句">${ICONS.chevronLeft}</button>
         <button class="btn btn-sm btn-secondary btn-icon" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''} title="下一句">${ICONS.chevronRight}</button>
-        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('home')" title="首页">${ICONS.home}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('home')" title="返回">${ICONS.home}</button>
       </div>
     </div>
     <div class="player-bar">
@@ -843,7 +845,7 @@ function renderResult(container) {
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-primary" id="btn-restart">${ICONS.rotateCcw}再次练习</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
     </div>
   `;
   container.appendChild(card);
@@ -1074,7 +1076,7 @@ function renderDrill(container) {
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn btn-primary" id="btn-start-drill">${ICONS.zap}开始专项训练</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
     </div>
 
     <div style="margin-top:24px">
@@ -1314,7 +1316,7 @@ function finishDrill() {
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-primary" onclick="setPage('drill')">${ICONS.target}再来一轮</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
     </div>
   `;
   main.appendChild(card);
