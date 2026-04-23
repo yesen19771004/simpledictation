@@ -72,8 +72,8 @@ document.addEventListener('keydown', (e) => {
   if (e.code === 'Space') {
     const tag = document.activeElement?.tagName?.toLowerCase();
     if (tag === 'textarea' || tag === 'input') {
-      // In input field: require Ctrl+Space to avoid typing conflicts
-      if (!e.ctrlKey) return;
+      // In input field: require Shift+Space to avoid typing conflicts
+      if (!e.shiftKey) return;
     }
     e.preventDefault();
     currentTogglePlay();
@@ -492,7 +492,7 @@ function renderPractice(container) {
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句</label>
         <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放</div>
+        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放</div>
       </div>
     `;
   } else {
@@ -530,7 +530,7 @@ function renderPractice(container) {
     dictationArea.appendChild(line);
     const hint = document.createElement('div');
     hint.className = 'keyboard-hint';
-    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Ctrl</kbd>+<kbd>Space</kbd> 播放';
+    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查 · <kbd>Space</kbd> 播放 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放';
     dictationArea.appendChild(hint);
   }
 
