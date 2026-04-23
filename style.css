@@ -940,6 +940,30 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   animation: slideIn 0.3s ease forwards;
 }
 
+/* Readonly textarea */
+textarea[readonly] {
+  background: var(--bg);
+  cursor: text;
+  color: var(--text-secondary);
+}
+
+/* Drill wrong word highlight (inline style backup) */
+.drill-wrong {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 14px;
+  background: var(--danger-soft);
+  border: 1.5px solid rgba(244, 63, 94, 0.3);
+  color: var(--danger);
+  border-radius: var(--radius-sm);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+[data-theme="dark"] .drill-wrong {
+  border-color: rgba(251, 113, 133, 0.2);
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .app-header { padding: 0 16px; height: 56px; }

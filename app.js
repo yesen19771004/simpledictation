@@ -18,6 +18,63 @@ function saveSessions(sessions) {
 }
 function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 9); }
 
+// ============================================================
+// Mistakes tracking
+// ============================================================
+const MISTAKES_KEY = 'dictation-mistakes-v1';
+
+function loadMistakes() {
+  try { return JSON.parse(localStorage.getItem(MISTAKES_KEY)) || {}; } catch { return {}; }
+}
+function saveMistakes(m) {
+  localStorage.setItem(MISTAKES_KEY, JSON.stringify(m));
+}
+function addMistakeWords(wordList) {
+  const m = loadMistakes();
+  const now = Date.now();
+  wordList.forEach(w => {
+    const key = normalizeWord(w);
+    if (!key) return;
+    if (!m[key]) m[key] = { word: w, count: 0, lastAt: now };
+    m[key].count += 1;
+    m[key].lastAt = now;
+  });
+  saveMistakes(m);
+}
+function updateMistakeFromDrill(correctWords, wrongWords) {
+  const m = loadMistakes();
+  const now = Date.now();
+  correctWords.forEach(w => {
+    const key = normalizeWord(w);
+    if (m[key]) {
+      m[key].count -= 1;
+      m[key].lastAt = now;
+      if (m[key].count <= 0) delete m[key];
+    }
+  });
+  wrongWords.forEach(w => {
+    const key = normalizeWord(w);
+    if (m[key]) {
+      m[key].count += 1;
+      m[key].lastAt = now;
+    }
+  });
+  saveMistakes(m);
+}
+function getTopMistakes(n = 30) {
+  const m = loadMistakes();
+  return Object.values(m)
+    .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
+    .slice(0, n);
+}
+function getMistakeWordsForPrompt(minCount = 2) {
+  const m = loadMistakes();
+  return Object.values(m)
+    .filter(x => x.count >= minCount)
+    .sort((a, b) => b.count - a.count)
+    .map(x => x.word);
+}
+
 const ICONS = {
   play: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>`,
   pause: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`,
@@ -37,7 +94,13 @@ const ICONS = {
   pencil: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
   volume: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>`,
   library: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>`,
-  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`
+  help: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  target: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  copy: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`,
+  clipboardCheck: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>`,
+  zap: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+  list: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
+  message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
 };
 
 function splitSentences(text) {
@@ -68,7 +131,7 @@ let currentTogglePlay = null;
 
 // Global keyboard shortcuts
 document.addEventListener('keydown', (e) => {
-  if (currentPage !== 'practice') return;
+  if (currentPage !== 'practice' && currentPage !== 'drill-practice') return;
 
   // Enter: focus first input when not already in one
   if (e.code === 'Enter' && !e.ctrlKey && !e.shiftKey) {
@@ -135,7 +198,7 @@ function setPage(page) {
   }
   currentPage = page;
   const nav = document.getElementById('nav-tabs');
-  nav.style.display = (page === 'home' || page === 'library' || page === 'create' || page === 'help') ? 'flex' : 'none';
+  nav.style.display = (page === 'home' || page === 'library' || page === 'drill' || page === 'create' || page === 'help') ? 'flex' : 'none';
   nav.querySelectorAll('button').forEach(b => {
     b.classList.toggle('active', b.dataset.page === page);
   });
@@ -154,6 +217,8 @@ function renderMain() {
   else if (currentPage === 'practice') renderPractice(main);
   else if (currentPage === 'result') renderResult(main);
   else if (currentPage === 'library') renderLibrary(main);
+  else if (currentPage === 'drill') renderDrill(main);
+  else if (currentPage === 'drill-practice') renderDrillPractice(main);
   else if (currentPage === 'help') renderHelp(main);
 }
 
@@ -643,6 +708,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
+      // Record unmatched words as mistakes
+      const unmatchedWords = words.filter((_, i) => !matchedSet.has(i));
+      addMistakeWords(unmatchedWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -678,6 +746,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
+      // Record still-unmatched words as mistakes
+      const unmatchedWords = words.filter((_, i) => !lockedSet.has(i));
+      addMistakeWords(unmatchedWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -909,6 +980,299 @@ function renderLibrary(container) {
       }
     }
   });
+}
+
+// ============================================================
+// Drill (Weak-word training)
+// ============================================================
+let drillSession = null; // { title, sentences, currentIdx, text }
+
+function renderDrill(container) {
+  const mistakes = loadMistakes();
+  const list = Object.values(mistakes).sort((a, b) => b.count - a.count || b.lastAt - a.lastAt);
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  if (list.length === 0) {
+    card.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">${ICONS.target}</div>
+        <h3>暂无待训练词汇</h3>
+        <p>在常规听写练习中，系统会自动记录你听写出错的单词。积累足够错题后，来这里进行专项突破。</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}去练习库</button>
+        </div>
+      </div>`;
+    container.appendChild(card);
+    return;
+  }
+
+  const promptWords = getMistakeWordsForPrompt(2);
+  const promptText = promptWords.length
+    ? `请写一段自然流畅的英文短文，尽量包含以下单词：${promptWords.join('、')}。这些单词是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。短文长度适中（约 150-250 词），主题不限，语气轻松自然即可。`
+    : '';
+
+  card.innerHTML = `
+    <div class="card-title">专项训练</div>
+    <div class="card-desc">针对听写出错的薄弱词汇进行集中突破。系统会自动生成 LLM 提示词，让大语言模型为你量身打造训练文章。</div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:16px;background:var(--bg);border-radius:var(--radius);border:1.5px solid var(--border)">
+      <div style="width:48px;height:48px;border-radius:50%;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICONS.target}</div>
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--text);line-height:1">${list.length}</div>
+        <div style="font-size:13px;color:var(--text-muted)">个待训练词汇</div>
+      </div>
+      <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-primary" id="btn-gen-prompt" ${promptWords.length ? '' : 'disabled'}>${ICONS.sparkles}生成提示词</button>
+      </div>
+    </div>
+
+    <div id="prompt-area" style="display:none;margin-bottom:20px">
+      <div class="form-group" style="margin-bottom:8px">
+        <label>LLM 提示词（已按出错频率筛选）</label>
+        <textarea id="drill-prompt" readonly style="min-height:100px;background:var(--bg);cursor:text">${escapeHtml(promptText)}</textarea>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-secondary" id="btn-copy-prompt">${ICONS.copy}复制提示词</button>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-bottom:16px">
+      <label>粘贴 LLM 返回的英文文章</label>
+      <textarea id="drill-text" placeholder="将大语言模型生成的英文文章粘贴到这里..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btn-start-drill">${ICONS.zap}开始专项训练</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
+    </div>
+
+    <div style="margin-top:24px">
+      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px">${ICONS.list}错题记录</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${list.map(m => `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary)"><strong style="color:var(--text)">${escapeHtml(m.word)}</strong><span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;opacity:0.5"></span>出错 ${m.count} 次</span>`).join('')}
+      </div>
+    </div>
+  `;
+  container.appendChild(card);
+
+  // Toggle prompt area
+  card.querySelector('#btn-gen-prompt').addEventListener('click', () => {
+    const area = card.querySelector('#prompt-area');
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  });
+
+  // Copy prompt
+  card.querySelector('#btn-copy-prompt').addEventListener('click', async () => {
+    const text = card.querySelector('#drill-prompt').value;
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast('提示词已复制');
+    } catch {
+      showToast('复制失败，请手动复制');
+    }
+  });
+
+  // Start drill
+  card.querySelector('#btn-start-drill').addEventListener('click', () => {
+    const text = card.querySelector('#drill-text').value.trim();
+    if (!text) { showToast('请粘贴 LLM 返回的文章'); return; }
+    const sentences = splitSentences(text);
+    if (!sentences.length) { showToast('未能识别到句子'); return; }
+    drillSession = {
+      title: '专项训练',
+      text,
+      sentences,
+      currentIdx: 0,
+      results: [] // { sentence, correctIndices, wrongIndices }
+    };
+    setPage('drill-practice');
+  });
+}
+
+function renderDrillPractice(container) {
+  if (!drillSession) { setPage('drill'); return; }
+  const idx = drillSession.currentIdx;
+  if (idx >= drillSession.sentences.length) {
+    // Finish drill, update mistakes
+    finishDrill();
+    return;
+  }
+
+  const sentence = drillSession.sentences[idx];
+  const words = sentence.trim().split(/\s+/);
+
+  const card = document.createElement('div');
+  card.className = 'practice-card';
+  card.innerHTML = `
+    <div class="practice-header">
+      <div>
+        <div class="practice-title">专项训练</div>
+        <div class="practice-subtitle">第 ${idx + 1} / ${drillSession.sentences.length} 句 · 仅一次机会</div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${Math.round((idx / drillSession.sentences.length) * 100)}%"></div>
+        </div>
+      </div>
+      <div class="session-actions">
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('drill')" title="退出">${ICONS.x}</button>
+      </div>
+    </div>
+    <div class="player-bar">
+      <button class="player-btn" id="btn-play" title="播放">
+        <svg class="play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg class="pause-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="speed-control">
+        <label>语速</label>
+        <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
+        <span class="speed-value" id="rate-value">1.0x</span>
+      </div>
+    </div>
+    <div class="dictation-area">
+      <div class="form-group" style="margin-bottom:0">
+        <label style="margin-bottom:10px">请听写整句（只有一次机会）</label>
+        <textarea class="dictation-full" id="drill-input" placeholder="听完后在此输入完整句子..."></textarea>
+        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
+      </div>
+    </div>
+    <div class="action-bar">
+      <button class="btn btn-primary" id="btn-drill-check">${ICONS.check}提交核对</button>
+    </div>
+  `;
+  container.appendChild(card);
+
+  // Play
+  const playBtn = card.querySelector('#btn-play');
+  const rateInput = card.querySelector('#rate');
+  const rateValue = card.querySelector('#rate-value');
+  let isPlaying = false;
+
+  rateInput.addEventListener('input', () => {
+    rateValue.textContent = parseFloat(rateInput.value).toFixed(1) + 'x';
+  });
+
+  function setPlaying(playing) {
+    isPlaying = playing;
+    playBtn.classList.toggle('playing', playing);
+  }
+
+  function togglePlay() {
+    if (isPlaying) {
+      window.speechSynthesis.cancel();
+      setPlaying(false);
+    } else {
+      const rate = parseFloat(rateInput.value);
+      const ok = speak(sentence, rate, () => { if (isPlaying) setPlaying(false); });
+      if (!ok) { showToast('当前浏览器不支持语音播放'); return; }
+      setPlaying(true);
+    }
+  }
+  currentTogglePlay = togglePlay;
+  playBtn.addEventListener('click', togglePlay);
+
+  // Keyboard shortcuts
+  const input = card.querySelector('#drill-input');
+  input.addEventListener('keydown', (e) => {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      doDrillCheck();
+    }
+    if (e.code === 'Space' && e.shiftKey) {
+      e.preventDefault();
+      togglePlay();
+    }
+  });
+  // Global play shortcut for drill-practice
+  const oldGlobalKeydown = document.onkeydown;
+
+  function doDrillCheck() {
+    const fullText = input.value.trim();
+    if (!fullText) { showToast('请输入内容'); return; }
+    const userWords = fullText.split(/\s+/);
+    const matchedSet = diffWords(words, userWords);
+    const correctIndices = [];
+    const wrongIndices = [];
+    words.forEach((_, i) => {
+      if (matchedSet.has(i)) correctIndices.push(i); else wrongIndices.push(i);
+    });
+
+    drillSession.results.push({ sentence, correctIndices, wrongIndices });
+
+    // Show result inline
+    const dictationArea = card.querySelector('.dictation-area');
+    const line = document.createElement('div');
+    line.className = 'words-line';
+    words.forEach((w, i) => {
+      const span = document.createElement('span');
+      if (matchedSet.has(i)) {
+        span.className = 'word-lock';
+        span.textContent = w;
+      } else {
+        span.style.cssText = 'display:inline-flex;align-items:center;padding:8px 14px;background:var(--danger-soft);border:1.5px solid rgba(244,63,94,0.3);color:var(--danger);border-radius:var(--radius-sm);font-size:15px;font-weight:600;';
+        span.textContent = w;
+      }
+      line.appendChild(span);
+    });
+    dictationArea.innerHTML = '';
+    dictationArea.appendChild(line);
+
+    // Disable input and button
+    card.querySelector('#btn-drill-check').disabled = true;
+    input.disabled = true;
+    window.speechSynthesis.cancel();
+    setPlaying(false);
+    currentTogglePlay = null;
+
+    // Auto advance after delay
+    if (wrongIndices.length === 0) {
+      showToast('全对！');
+    } else {
+      showToast(`${correctIndices.length}/${words.length} 正确`);
+    }
+
+    setTimeout(() => {
+      drillSession.currentIdx += 1;
+      renderMain();
+    }, 1500);
+  }
+
+  card.querySelector('#btn-drill-check').addEventListener('click', doDrillCheck);
+}
+
+function finishDrill() {
+  const mistakes = loadMistakes();
+  const correctWords = [];
+  const wrongWords = [];
+  drillSession.results.forEach(r => {
+    const words = r.sentence.trim().split(/\s+/);
+    r.correctIndices.forEach(i => correctWords.push(words[i]));
+    r.wrongIndices.forEach(i => wrongWords.push(words[i]));
+  });
+  updateMistakeFromDrill(correctWords, wrongWords);
+
+  const totalCorrect = drillSession.results.reduce((s, r) => s + r.correctIndices.length, 0);
+  const totalWords = drillSession.results.reduce((s, r) => s + r.sentence.trim().split(/\s+/).length, 0);
+  const accuracy = totalWords ? Math.round(totalCorrect / totalWords * 100) : 0;
+
+  const main = document.getElementById('main');
+  main.innerHTML = '';
+  const card = document.createElement('div');
+  card.className = 'card result-card';
+  card.innerHTML = `
+    <h2>${accuracy === 100 ? '🎉 专项训练完成' : '专项训练完成'}</h2>
+    <p>薄弱词汇已更新，正确率 ${accuracy}%</p>
+    <div class="result-stats">
+      <div class="stat-item"><div class="stat-value">${totalCorrect}</div><div class="stat-label">正确词</div></div>
+      <div class="stat-item"><div class="stat-value">${totalWords - totalCorrect}</div><div class="stat-label">错误词</div></div>
+      <div class="stat-item"><div class="stat-value">${accuracy}%</div><div class="stat-label">正确率</div></div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <button class="btn btn-primary" onclick="setPage('drill')">${ICONS.target}再来一轮</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回首页</button>
+    </div>
+  `;
+  main.appendChild(card);
+  drillSession = null;
+  currentPage = 'drill-result'; // Not a real page, just for display
 }
 
 function renderHelp(container) {
