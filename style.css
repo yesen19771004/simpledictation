@@ -267,6 +267,11 @@ main {
   flex-shrink: 0;
 }
 
+/* Prevent inline SVGs from stretching in flex containers */
+svg[viewBox] {
+  flex-shrink: 0;
+}
+
 .btn-icon {
   width: 36px;
   height: 36px;
