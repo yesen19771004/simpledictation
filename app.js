@@ -142,7 +142,7 @@ document.addEventListener('keydown', (e) => {
     const tag = document.activeElement?.tagName?.toLowerCase();
     if (tag !== 'textarea' && tag !== 'input') {
       e.preventDefault();
-      const firstInput = document.querySelector('#full-input, .word-gap');
+      const firstInput = document.querySelector('#full-input, #drill-input, .word-gap');
       if (firstInput) firstInput.focus();
     }
     return;
@@ -237,9 +237,9 @@ function renderHome(container) {
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </div>
         <h3>开始你的第一次听写</h3>
-        <p>从练习库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
+        <p>从资料库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}浏览练习库</button>
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}浏览资料库</button>
           <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建练习</button>
         </div>
       </div>`;
@@ -878,7 +878,7 @@ function renderLibrary(container) {
   }
 
   function buildHtml() {
-    let html = `<div class="card-title">练习库</div>
+    let html = `<div class="card-title">资料库</div>
     <div class="card-desc">共 ${PRESET_LESSONS.length} 篇原创听写文本，覆盖 CEFR A1-C2 六个级别。</div>
     <div class="level-filter">
       <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">全部</button>
@@ -1004,7 +1004,7 @@ function renderDrill(container) {
         <h3>暂无待训练词汇</h3>
         <p>在常规听写练习中，系统会自动记录你听写出错的单词。积累足够错题后，来这里进行专项突破。</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}去练习库</button>
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}去资料库</button>
         </div>
       </div>`;
     container.appendChild(card);
@@ -1284,7 +1284,7 @@ function finishDrill() {
 
 function renderHelp(container) {
   const steps = [
-    { num: '1', title: '选择或创建练习', desc: '从练习库按 CEFR 级别挑选课程，或粘贴自己的英文文本创建练习。' },
+    { num: '1', title: '选择或创建练习', desc: '从资料库按 CEFR 级别挑选课程，或粘贴自己的英文文本创建练习。' },
     { num: '2', title: '播放与听写', desc: '点击播放按钮听句子，在输入框中写下听到的内容，可调整语速。' },
     { num: '3', title: '提交检查', desc: '首次输入整句提交，系统用 LCS 算法对齐，正确单词锁定，错误变为空格。' },
     { num: '4', title: '逐空补全', desc: '在空格里填入正确单词，再次提交，直到全对自动进入下一句。' },
