@@ -556,9 +556,9 @@ function renderPractice(container) {
         <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
         <span class="speed-value" id="rate-value">1.0x</span>
       </div>
+      ${buildVoiceToggleHTML()}
       <span id="play-status" style="font-size:13px;color:var(--text-muted);font-weight:500"></span>
     </div>
-    ${buildVoiceToggleHTML()}
     <div class="dictation-area" id="dictation-area"></div>
     <div class="action-bar">
       <button class="btn btn-primary" id="btn-check">${ICONS.check}提交检查</button>
@@ -1197,8 +1197,8 @@ function renderDrillPractice(container) {
         <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
         <span class="speed-value" id="rate-value">1.0x</span>
       </div>
+      ${buildVoiceToggleHTML()}
     </div>
-    ${buildVoiceToggleHTML()}
     <div class="dictation-area">
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句（只有一次机会）</label>
