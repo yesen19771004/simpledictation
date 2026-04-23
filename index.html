@@ -3,27 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>英语听写练习</title>
+<title>Dictation — 英语听写练习</title>
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <div id="app">
   <header class="app-header">
-    <h1>英语听写练习</h1>
+    <div class="header-brand" onclick="setPage('home')">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </div>
+      <span class="brand-text">Dictation</span>
+    </div>
     <div class="header-actions">
-      <button id="theme-toggle" title="切换明暗模式">🌙</button>
       <nav class="nav-tabs" id="nav-tabs" style="display:none">
         <button data-page="home">首页</button>
         <button data-page="library">练习库</button>
-        <button data-page="create">新建练习</button>
+        <button data-page="create">新建</button>
         <button data-page="help">帮助</button>
       </nav>
+      <button id="theme-toggle" class="theme-btn" title="切换明暗模式" aria-label="切换主题">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      </button>
     </div>
   </header>
 
-  <main id="main">
-    <!-- 动态内容 -->
-  </main>
+  <main id="main"></main>
 </div>
 
 <script src="preset-lessons.js"></script>

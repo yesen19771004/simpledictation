@@ -46,8 +46,6 @@ let activeSessionId = null;
 // Theme
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  const btn = document.getElementById('theme-toggle');
-  if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
   try { localStorage.setItem('dictation-theme', theme); } catch {}
 }
 function initTheme() {
@@ -116,15 +114,18 @@ function renderHome(container) {
   if (sessions.length === 0) {
     card.innerHTML = `
       <div class="empty-state">
-        <h3>暂无练习</h3>
-        <p>你可以从练习库选择课程，或手动创建练习。</p>
-        <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">去练习库</button>
+        <div class="empty-state-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+        </div>
+        <h3>开始你的第一次听写</h3>
+        <p>从练习库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="setPage('library')">浏览练习库</button>
           <button class="btn btn-secondary" onclick="setPage('create')">新建练习</button>
         </div>
       </div>`;
   } else {
-    let html = `<h2 style="margin-bottom:12px;font-size:18px">已有练习</h2>
+    let html = `<div class="card-title" style="margin-bottom:16px">已有练习</div>
       <div class="session-list">`;
     sessions.forEach(s => {
       const progress = s.progress || {};
@@ -134,7 +135,16 @@ function renderHome(container) {
       html += `<div class="session-item">
         <div class="session-info">
           <div class="session-title">${escapeHtml(s.title || '未命名练习')}</div>
-          <div class="session-meta">共 ${total} 句 · 进度 ${percent}% · ${new Date(s.createdAt).toLocaleString()}</div>
+          <div class="session-meta">
+            <span>共 ${total} 句</span>
+            <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
+            <span>${percent}% 完成</span>
+            <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
+            <span>${new Date(s.createdAt).toLocaleDateString()}</span>
+          </div>
+          <div class="progress-track" style="margin-top:8px;max-width:240px">
+            <div class="progress-fill" style="width:${percent}%"></div>
+          </div>
         </div>
         <div class="session-actions">
           <button class="btn btn-primary" data-action="continue" data-id="${s.id}">继续</button>
@@ -144,8 +154,8 @@ function renderHome(container) {
       </div>`;
     });
     html += `</div>
-    <div style="margin-top:16px">
-      <button class="btn btn-primary" onclick="setPage('create')">新建练习</button>
+    <div style="margin-top:20px">
+      <button class="btn btn-secondary" onclick="setPage('create')">+ 新建练习</button>
     </div>`;
     card.innerHTML = html;
   }
@@ -157,7 +167,7 @@ function renderHome(container) {
     const id = btn.dataset.id;
     const action = btn.dataset.action;
     if (action === 'delete') {
-      if (confirm('确定删除此练习吗?')) {
+      if (confirm('确定删除此练习吗？')) {
         saveSessions(loadSessions().filter(x => x.id !== id));
         renderMain();
         showToast('已删除');
@@ -181,16 +191,17 @@ function renderCreate(container) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
-    <h2 style="margin-bottom:12px;font-size:18px">新建练习</h2>
+    <div class="card-title">新建练习</div>
+    <div class="card-desc">输入英文原文，系统会自动按句切分，生成听写练习。</div>
     <div class="form-group">
-      <label>标题(可选)</label>
-      <input type="text" id="create-title" placeholder="例如:新概念英语 Lesson 1">
+      <label>标题（可选）</label>
+      <input type="text" id="create-title" placeholder="例如：每日英语新闻">
     </div>
     <div class="form-group">
       <label>英文原文</label>
-      <textarea id="create-text" placeholder="请输入一段英文,系统会自动按句子切分..."></textarea>
+      <textarea id="create-text" placeholder="在此粘贴一段英文..."></textarea>
     </div>
-    <div class="actions-row">
+    <div class="action-bar" style="padding:0;border:none;background:transparent">
       <button class="btn btn-primary" id="btn-create">生成练习</button>
       <button class="btn btn-secondary" onclick="setPage('home')">取消</button>
     </div>
@@ -372,7 +383,6 @@ function renderPractice(container) {
   const sentence = session.sentences[idx];
   const words = sentence.trim().split(/\s+/);
   const state = progress.sentenceStates[idx] || {};
-  // 兼容旧数据结构
   let locked = [];
   let gapDrafts = {};
   const hasHistory = Array.isArray(state.lockedIndices);
@@ -381,29 +391,43 @@ function renderPractice(container) {
     gapDrafts = state.gapDrafts || {};
   }
 
+  const totalDone = (progress.completedSentences || []).filter(Boolean).length;
+  const totalPercent = session.sentences.length ? Math.round(totalDone / session.sentences.length * 100) : 0;
+
   const card = document.createElement('div');
-  card.className = 'card';
+  card.className = 'practice-card';
   card.innerHTML = `
     <div class="practice-header">
-      <div class="progress-info">第 ${idx + 1} / ${session.sentences.length} 句</div>
-      <div class="actions-row">
-        <button class="btn btn-secondary" id="btn-prev" ${idx <= 0 ? 'disabled' : ''}>上一句</button>
-        <button class="btn btn-secondary" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''}>下一句</button>
-        <button class="btn btn-secondary" onclick="setPage('home')">首页</button>
+      <div>
+        <div class="practice-title">${escapeHtml(session.title || '未命名练习')}</div>
+        <div class="practice-subtitle">第 ${idx + 1} / ${session.sentences.length} 句 · 已完成 ${totalPercent}%</div>
+        <div class="progress-track">
+          <div class="progress-fill" style="width:${totalPercent}%"></div>
+        </div>
+      </div>
+      <div class="session-actions">
+        <button class="btn btn-sm btn-secondary" id="btn-prev" ${idx <= 0 ? 'disabled' : ''}>上一句</button>
+        <button class="btn btn-sm btn-secondary" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''}>下一句</button>
+        <button class="btn btn-sm btn-secondary" onclick="setPage('home')">首页</button>
       </div>
     </div>
     <div class="player-bar">
-      <button class="btn btn-primary" id="btn-play">▶ 播放</button>
-      <label class="speed">语速 <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1"></label>
-      <span id="play-status" style="font-size:13px;color:#64748b"></span>
+      <button class="player-btn" id="btn-play" title="播放">
+        <svg class="play-icon" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        <svg class="pause-icon" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+      </button>
+      <div class="speed-control">
+        <label>语速</label>
+        <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
+        <span class="speed-value" id="rate-value">1.0x</span>
+      </div>
+      <span id="play-status" style="font-size:13px;color:var(--text-muted);font-weight:500"></span>
     </div>
-    <div style="margin-bottom:16px">
-      <div id="dictation-area"></div>
-    </div>
-    <div class="actions-row">
+    <div class="dictation-area" id="dictation-area"></div>
+    <div class="action-bar">
       <button class="btn btn-primary" id="btn-check">提交检查</button>
       <button class="btn btn-secondary" id="btn-show-original">显示原文</button>
-      <button class="btn btn-secondary" id="btn-skip">跳过本句</button>
+      <button class="btn btn-secondary" id="btn-skip">跳过</button>
     </div>
     <div class="side-panel" id="side-panel" style="display:none">
       <div class="accordion">
@@ -415,10 +439,10 @@ function renderPractice(container) {
         <div class="accordion-body" id="acc-trans"><div class="translation-text">加载中...</div></div>
       </div>
       <div class="accordion">
-        <button class="accordion-header" id="acc-words-btn">单词翻译(点击单词查看)</button>
+        <button class="accordion-header" id="acc-words-btn">单词翻译（点击单词查看）</button>
         <div class="accordion-body" id="acc-words">
           <div class="word-list" id="word-list"></div>
-          <div id="word-trans" style="margin-top:8px;font-size:14px;color:#334155"></div>
+          <div id="word-trans"></div>
         </div>
       </div>
     </div>
@@ -428,9 +452,9 @@ function renderPractice(container) {
   const dictationArea = card.querySelector('#dictation-area');
   if (!hasHistory) {
     dictationArea.innerHTML = `
-      <div class="form-group">
-        <label>请听写整句</label>
-        <textarea id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="margin-bottom:10px">请听写整句</label>
+        <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
       </div>
     `;
   } else {
@@ -471,18 +495,26 @@ function renderPractice(container) {
   // Play / Stop
   const playBtn = card.querySelector('#btn-play');
   const playStatus = card.querySelector('#play-status');
+  const rateInput = card.querySelector('#rate');
+  const rateValue = card.querySelector('#rate-value');
   let isPlaying = false;
+
+  rateInput.addEventListener('input', () => {
+    rateValue.textContent = parseFloat(rateInput.value).toFixed(1) + 'x';
+  });
+
   function setPlaying(playing) {
     isPlaying = playing;
-    playBtn.textContent = playing ? '⏹ 停止' : '▶ 播放';
-    playStatus.textContent = playing ? '播放中...' : '';
+    playBtn.classList.toggle('playing', playing);
+    playStatus.textContent = playing ? '播放中…' : '';
   }
+
   playBtn.addEventListener('click', () => {
     if (isPlaying) {
       window.speechSynthesis.cancel();
       setPlaying(false);
     } else {
-      const rate = parseFloat(card.querySelector('#rate').value);
+      const rate = parseFloat(rateInput.value);
       const ok = speak(sentence, rate, () => {
         if (isPlaying) setPlaying(false);
       });
@@ -519,6 +551,7 @@ function renderPractice(container) {
     if (btn && body) {
       btn.addEventListener('click', () => {
         body.classList.toggle('hidden');
+        btn.classList.toggle('expanded', !body.classList.contains('hidden'));
       });
     }
   });
@@ -531,9 +564,9 @@ function renderPractice(container) {
     chip.className = 'word-chip';
     chip.textContent = w;
     chip.addEventListener('click', async () => {
-      wordTrans.textContent = '查询中...';
+      wordTrans.textContent = '查询中…';
       const t = await translateText(w);
-      wordTrans.innerHTML = `<strong>${escapeHtml(w)}</strong>:${escapeHtml(t || '(暂无翻译)')}`;
+      wordTrans.innerHTML = `<strong>${escapeHtml(w)}</strong>：${escapeHtml(t || '（暂无翻译）')}`;
     });
     wordList.appendChild(chip);
   });
@@ -548,7 +581,7 @@ function renderPractice(container) {
       const newLocked = Array.from(matchedSet);
       if (newLocked.length === words.length) {
         markSentenceDone(progress, idx);
-        showToast('全对!进入下一句');
+        showToast('全对！进入下一句');
         updateSessionProgress(activeSessionId, progress);
         renderMain();
         return;
@@ -556,7 +589,7 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词,请补全剩余部分`);
+      showToast(`对了 ${newLocked.length}/${words.length} 个词，请补全剩余部分`);
     } else {
       const inputs = card.querySelectorAll('.word-gap');
       const lockedSet = new Set(locked);
@@ -583,7 +616,7 @@ function renderPractice(container) {
       const newLocked = Array.from(lockedSet).sort((a, b) => a - b);
       if (newLocked.length === words.length) {
         markSentenceDone(progress, idx);
-        showToast('全对!进入下一句');
+        showToast('全对！进入下一句');
         updateSessionProgress(activeSessionId, progress);
         renderMain();
         return;
@@ -591,13 +624,13 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词,继续补全`);
+      showToast(`对了 ${newLocked.length}/${words.length} 个词，继续补全`);
     }
   });
 
   // Skip
   card.querySelector('#btn-skip').addEventListener('click', () => {
-    if (confirm('确定跳过本句吗?进度将标记为跳过。')) {
+    if (confirm('确定跳过本句吗？进度将标记为跳过。')) {
       markSentenceDone(progress, idx);
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -638,12 +671,27 @@ function renderResult(container) {
   if (!session) { setPage('home'); return; }
   const total = session.sentences.length;
   const done = (session.progress?.completedSentences || []).filter(Boolean).length;
+  const accuracy = total ? Math.round(done / total * 100) : 0;
   const card = document.createElement('div');
-  card.className = 'card result-summary';
+  card.className = 'card result-card';
   card.innerHTML = `
-    <h2>练习完成</h2>
-    <p>已完成 ${done} / ${total} 句</p>
-    <div class="actions-row" style="justify-content:center">
+    <h2>${accuracy === 100 ? '🎉 全部完成' : '练习完成'}</h2>
+    <p>${escapeHtml(session.title || '未命名练习')}</p>
+    <div class="result-stats">
+      <div class="stat-item">
+        <div class="stat-value">${done}</div>
+        <div class="stat-label">已完成</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${total}</div>
+        <div class="stat-label">总句数</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value">${accuracy}%</div>
+        <div class="stat-label">完成率</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <button class="btn btn-primary" id="btn-restart">再次练习</button>
       <button class="btn btn-secondary" onclick="setPage('home')">返回首页</button>
     </div>
@@ -680,11 +728,9 @@ function renderLibrary(container) {
   }
 
   function buildHtml() {
-    let html = `<h2 style="margin-bottom:8px;font-size:18px">练习库</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
-      共 ${PRESET_LESSONS.length} 篇原创听写文本，按 CEFR 级别分类。点击任意课程即可开始。
-    </p>
-    <div class="level-filter" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    let html = `<div class="card-title">练习库</div>
+    <div class="card-desc">共 ${PRESET_LESSONS.length} 篇原创听写文本，覆盖 CEFR A1-C2 六个级别。</div>
+    <div class="level-filter">
       <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">全部</button>
       ${levels.map(lv => `<button class="btn btn-sm ${activeLevel === lv ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
     </div>`;
@@ -701,21 +747,28 @@ function renderLibrary(container) {
     } else {
       levels.forEach(lv => {
         if (!groups[lv]) return;
-        html += `<div class="level-section" style="margin-bottom:20px">
-          <div style="font-size:15px;font-weight:600;margin-bottom:10px;color:var(--primary)">${lv}</div>
+        html += `<div class="level-section" style="margin-bottom:24px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span class="level-badge level-${lv.toLowerCase()}">${lv}</span>
+            <span style="font-size:13px;color:var(--text-muted)">${groups[lv].length} 篇</span>
+          </div>
           <div class="session-list">`;
         groups[lv].forEach(l => {
           const st = getSessionStatus(l.id);
           const percent = st.total ? Math.round(st.done / st.total * 100) : 0;
           let statusBadge = '';
           if (!st.imported) statusBadge = `<span style="font-size:12px;color:var(--text-muted)">未开始</span>`;
-          else if (percent === 100) statusBadge = `<span style="font-size:12px;color:var(--success-text)">已完成</span>`;
-          else statusBadge = `<span style="font-size:12px;color:var(--primary)">进度 ${percent}%</span>`;
+          else if (percent === 100) statusBadge = `<span style="font-size:12px;color:var(--success);font-weight:600">已完成</span>`;
+          else statusBadge = `<span style="font-size:12px;color:var(--primary);font-weight:600">进度 ${percent}%</span>`;
 
           html += `<div class="session-item">
             <div class="session-info">
               <div class="session-title">${escapeHtml(l.title)}</div>
-              <div class="session-meta">${st.total ? `共 ${st.total} 句 · ` : ''}${statusBadge}</div>
+              <div class="session-meta">
+                <span>${st.total ? `共 ${st.total} 句` : ''}</span>
+                <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;opacity:0.5"></span>
+                ${statusBadge}
+              </div>
             </div>
             <div class="session-actions">
               <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? '继续' : '开始练习'}</button>
@@ -784,18 +837,33 @@ function renderLibrary(container) {
 }
 
 function renderHelp(container) {
+  const steps = [
+    { num: '1', title: '选择或创建练习', desc: '从练习库按 CEFR 级别挑选课程，或粘贴自己的英文文本创建练习。' },
+    { num: '2', title: '播放与听写', desc: '点击播放按钮听句子，在输入框中写下听到的内容，可调整语速。' },
+    { num: '3', title: '提交检查', desc: '首次输入整句提交，系统用 LCS 算法对齐，正确单词锁定，错误变为空格。' },
+    { num: '4', title: '逐空补全', desc: '在空格里填入正确单词，再次提交，直到全对自动进入下一句。' },
+    { num: '5', title: '查看辅助', desc: '点击「显示原文」可查看完整原文、句子翻译及逐词翻译。' },
+    { num: '6', title: '进度管理', desc: '进度自动保存在浏览器中，关闭页面后可继续。可自由切换上下句。' }
+  ];
+
   const card = document.createElement('div');
   card.className = 'card';
-  card.innerHTML = `
-    <h2 style="margin-bottom:12px;font-size:18px">帮助</h2>
-    <p style="margin-bottom:8px">1. 点击"新建练习"输入英文原文，系统会自动分句。</p>
-    <p style="margin-bottom:8px">2. 播放按钮朗读当前句子，可调整语速。</p>
-    <p style="margin-bottom:8px">3. 首次听写输入整句，提交后系统会自动对齐单词，正确的词锁定，缺失或错误的词变成空格，分别填入即可。</p>
-    <p style="margin-bottom:8px">4. 点击"显示原文"可查看原文、句子翻译及单词翻译。</p>
-    <p style="margin-bottom:8px">5. 进度自动保存，退出后下次可继续。</p>
-    <p>6. 再次练习会清空当前进度重新开始。</p>
-    <p style="margin-top:8px;color:var(--text-muted)">7. 在"练习库"中可按 CEFR 级别（A1-C2）选择 180 篇原创听写文本，一键开始练习。</p>
-  `;
+  let html = `<div class="card-title">使用帮助</div>
+    <div class="card-desc">简单几步，开始高效的英语听写训练。</div>
+    <div style="display:grid;gap:16px">`;
+
+  steps.forEach(s => {
+    html += `<div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${s.num}</div>
+      <div>
+        <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${s.title}</div>
+        <div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${s.desc}</div>
+      </div>
+    </div>`;
+  });
+
+  html += `</div>`;
+  card.innerHTML = html;
   container.appendChild(card);
 }
 
