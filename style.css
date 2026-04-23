@@ -666,6 +666,31 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
 
 .word-gap::placeholder { color: var(--text-muted); opacity: 0.6; }
 
+/* Keyboard hint */
+.keyboard-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.keyboard-hint kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  font-family: inherit;
+  color: var(--text-secondary);
+  box-shadow: 0 1px 0 var(--border);
+}
+
 /* Action Bar */
 .action-bar {
   padding: 16px 24px;

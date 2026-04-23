@@ -477,6 +477,7 @@ function renderPractice(container) {
       <div class="form-group" style="margin-bottom:0">
         <label style="margin-bottom:10px">请听写整句</label>
         <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
+        <div class="keyboard-hint"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
       </div>
     `;
   } else {
@@ -512,6 +513,10 @@ function renderPractice(container) {
       }
     }
     dictationArea.appendChild(line);
+    const hint = document.createElement('div');
+    hint.className = 'keyboard-hint';
+    hint.innerHTML = '<kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查';
+    dictationArea.appendChild(hint);
   }
 
   // Play / Stop
@@ -593,8 +598,8 @@ function renderPractice(container) {
     wordList.appendChild(chip);
   });
 
-  // Check / Submit
-  card.querySelector('#btn-check').addEventListener('click', () => {
+  // Check / Submit logic
+  function doCheck() {
     if (!hasHistory) {
       const fullText = card.querySelector('#full-input').value.trim();
       if (!fullText) { showToast('请输入内容'); return; }
@@ -648,7 +653,25 @@ function renderPractice(container) {
       renderMain();
       showToast(`对了 ${newLocked.length}/${words.length} 个词，继续补全`);
     }
-  });
+  }
+
+  card.querySelector('#btn-check').addEventListener('click', doCheck);
+
+  // Keyboard shortcut: Ctrl+Enter to submit
+  function handleKeydown(e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+      e.preventDefault();
+      doCheck();
+    }
+  }
+  if (!hasHistory) {
+    const fullInput = card.querySelector('#full-input');
+    fullInput.addEventListener('keydown', handleKeydown);
+  } else {
+    card.querySelectorAll('.word-gap').forEach(inp => {
+      inp.addEventListener('keydown', handleKeydown);
+    });
+  }
 
   // Skip
   card.querySelector('#btn-skip').addEventListener('click', () => {
