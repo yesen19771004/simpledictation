@@ -1,4 +1,14 @@
 const STORAGE_KEY = 'dictation-app-v1';
+const PRESET_KEY = 'dictation-preset-imported-v1';
+
+// PRESET_LESSONS 定义在 preset-lessons.js 中，按 CEFR 级别组织
+
+function loadPresetImported() {
+  try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { return {}; }
+}
+function savePresetImported(map) {
+  localStorage.setItem(PRESET_KEY, JSON.stringify(map));
+}
 
 function loadSessions() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
@@ -77,7 +87,7 @@ function setPage(page) {
   }
   currentPage = page;
   const nav = document.getElementById('nav-tabs');
-  nav.style.display = (page === 'home' || page === 'create' || page === 'help') ? 'flex' : 'none';
+  nav.style.display = (page === 'home' || page === 'library' || page === 'create' || page === 'help') ? 'flex' : 'none';
   nav.querySelectorAll('button').forEach(b => {
     b.classList.toggle('active', b.dataset.page === page);
   });
@@ -95,6 +105,7 @@ function renderMain() {
   else if (currentPage === 'create') renderCreate(main);
   else if (currentPage === 'practice') renderPractice(main);
   else if (currentPage === 'result') renderResult(main);
+  else if (currentPage === 'library') renderLibrary(main);
   else if (currentPage === 'help') renderHelp(main);
 }
 
@@ -106,8 +117,11 @@ function renderHome(container) {
     card.innerHTML = `
       <div class="empty-state">
         <h3>暂无练习</h3>
-        <p>点击下方按钮创建你的第一个英语听写练习。</p>
-        <button class="btn btn-primary" onclick="setPage('create')" style="margin-top:12px">新建练习</button>
+        <p>你可以从练习库选择课程，或手动创建练习。</p>
+        <div style="margin-top:12px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="setPage('library')">去练习库</button>
+          <button class="btn btn-secondary" onclick="setPage('create')">新建练习</button>
+        </div>
       </div>`;
   } else {
     let html = `<h2 style="margin-bottom:12px;font-size:18px">已有练习</h2>
@@ -143,7 +157,7 @@ function renderHome(container) {
     const id = btn.dataset.id;
     const action = btn.dataset.action;
     if (action === 'delete') {
-      if (confirm('确定删除此练习吗？')) {
+      if (confirm('确定删除此练习吗?')) {
         saveSessions(loadSessions().filter(x => x.id !== id));
         renderMain();
         showToast('已删除');
@@ -169,12 +183,12 @@ function renderCreate(container) {
   card.innerHTML = `
     <h2 style="margin-bottom:12px;font-size:18px">新建练习</h2>
     <div class="form-group">
-      <label>标题（可选）</label>
-      <input type="text" id="create-title" placeholder="例如：新概念英语 Lesson 1">
+      <label>标题(可选)</label>
+      <input type="text" id="create-title" placeholder="例如:新概念英语 Lesson 1">
     </div>
     <div class="form-group">
       <label>英文原文</label>
-      <textarea id="create-text" placeholder="请输入一段英文，系统会自动按句子切分..."></textarea>
+      <textarea id="create-text" placeholder="请输入一段英文,系统会自动按句子切分..."></textarea>
     </div>
     <div class="actions-row">
       <button class="btn btn-primary" id="btn-create">生成练习</button>
@@ -213,7 +227,7 @@ function initProgress(n) {
   };
 }
 
-// 基于 LCS 的单词级 diff，返回原文中匹配上的索引集合
+// 基于 LCS 的单词级 diff,返回原文中匹配上的索引集合
 function diffWords(src, tgt) {
   const m = src.length, n = tgt.length;
   const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
@@ -257,12 +271,71 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+let selectedVoice = null;
+
+function pickBestVoice() {
+  if (!window.speechSynthesis) return null;
+  const voices = window.speechSynthesis.getVoices();
+  if (!voices || voices.length === 0) return null;
+  // 优先级：知名高质量英语语音优先
+  const preferred = [
+    'Google US English',
+    'Google UK English Female',
+    'Google UK English Male',
+    'Samantha',
+    'Alex',
+    'Victoria',
+    'Daniel',
+    'Karen',
+    'Moira',
+    'Tessa',
+    'Microsoft David Desktop',
+    'Microsoft Zira Desktop',
+    'Microsoft David',
+    'Microsoft Zira',
+    'Microsoft Ava',
+    'Microsoft Andrew',
+    'Microsoft Emma',
+    'Microsoft Brian',
+    'Microsoft Jenny'
+  ];
+  for (const name of preferred) {
+    const v = voices.find(v => v.name === name);
+    if (v) return v;
+  }
+  // 回退：找 en-US，然后 en-GB，然后任意 en
+  let v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-us'));
+  if (v) return v;
+  v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-gb'));
+  if (v) return v;
+  v = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('en'));
+  if (v) return v;
+  return voices[0];
+}
+
+function initVoices() {
+  selectedVoice = pickBestVoice();
+}
+
+// macOS Chrome 第一次 getVoices() 可能为空，需要等 voiceschanged
+if (window.speechSynthesis) {
+  initVoices();
+  if (!selectedVoice || window.speechSynthesis.getVoices().length === 0) {
+    window.speechSynthesis.addEventListener('voiceschanged', initVoices, { once: true });
+  }
+}
+
 function speak(text, rate = 1.0, onEnd) {
   if (!window.speechSynthesis) { return false; }
   window.speechSynthesis.cancel();
   const u = new SpeechSynthesisUtterance(text);
-  u.lang = 'en-US';
   u.rate = rate;
+  if (selectedVoice) {
+    u.voice = selectedVoice;
+    u.lang = selectedVoice.lang || 'en-US';
+  } else {
+    u.lang = 'en-US';
+  }
   if (onEnd) {
     u.onend = onEnd;
     u.onerror = onEnd;
@@ -342,7 +415,7 @@ function renderPractice(container) {
         <div class="accordion-body" id="acc-trans"><div class="translation-text">加载中...</div></div>
       </div>
       <div class="accordion">
-        <button class="accordion-header" id="acc-words-btn">单词翻译（点击单词查看）</button>
+        <button class="accordion-header" id="acc-words-btn">单词翻译(点击单词查看)</button>
         <div class="accordion-body" id="acc-words">
           <div class="word-list" id="word-list"></div>
           <div id="word-trans" style="margin-top:8px;font-size:14px;color:#334155"></div>
@@ -460,7 +533,7 @@ function renderPractice(container) {
     chip.addEventListener('click', async () => {
       wordTrans.textContent = '查询中...';
       const t = await translateText(w);
-      wordTrans.innerHTML = `<strong>${escapeHtml(w)}</strong>：${escapeHtml(t || '（暂无翻译）')}`;
+      wordTrans.innerHTML = `<strong>${escapeHtml(w)}</strong>:${escapeHtml(t || '(暂无翻译)')}`;
     });
     wordList.appendChild(chip);
   });
@@ -475,7 +548,7 @@ function renderPractice(container) {
       const newLocked = Array.from(matchedSet);
       if (newLocked.length === words.length) {
         markSentenceDone(progress, idx);
-        showToast('全对！进入下一句');
+        showToast('全对!进入下一句');
         updateSessionProgress(activeSessionId, progress);
         renderMain();
         return;
@@ -483,7 +556,7 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词，请补全剩余部分`);
+      showToast(`对了 ${newLocked.length}/${words.length} 个词,请补全剩余部分`);
     } else {
       const inputs = card.querySelectorAll('.word-gap');
       const lockedSet = new Set(locked);
@@ -510,7 +583,7 @@ function renderPractice(container) {
       const newLocked = Array.from(lockedSet).sort((a, b) => a - b);
       if (newLocked.length === words.length) {
         markSentenceDone(progress, idx);
-        showToast('全对！进入下一句');
+        showToast('全对!进入下一句');
         updateSessionProgress(activeSessionId, progress);
         renderMain();
         return;
@@ -518,13 +591,13 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词，继续补全`);
+      showToast(`对了 ${newLocked.length}/${words.length} 个词,继续补全`);
     }
   });
 
   // Skip
   card.querySelector('#btn-skip').addEventListener('click', () => {
-    if (confirm('确定跳过本句吗？进度将标记为跳过。')) {
+    if (confirm('确定跳过本句吗?进度将标记为跳过。')) {
       markSentenceDone(progress, idx);
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -587,17 +660,141 @@ function renderResult(container) {
   });
 }
 
+function renderLibrary(container) {
+  const importedMap = loadPresetImported();
+  const sessions = loadSessions();
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  let activeLevel = 'all';
+  const levels = ['A1','A2','B1','B2','C1','C2'];
+
+  function getSessionStatus(presetId) {
+    const sessionId = importedMap[presetId];
+    if (!sessionId) return { imported: false, done: 0, total: 0 };
+    const s = sessions.find(x => x.id === sessionId);
+    if (!s) return { imported: false, done: 0, total: 0 };
+    const total = s.sentences.length;
+    const done = (s.progress?.completedSentences || []).filter(Boolean).length;
+    return { imported: true, done, total, sessionId };
+  }
+
+  function buildHtml() {
+    let html = `<h2 style="margin-bottom:8px;font-size:18px">练习库</h2>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">
+      共 ${PRESET_LESSONS.length} 篇原创听写文本，按 CEFR 级别分类。点击任意课程即可开始。
+    </p>
+    <div class="level-filter" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">全部</button>
+      ${levels.map(lv => `<button class="btn btn-sm ${activeLevel === lv ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
+    </div>`;
+
+    const groups = {};
+    PRESET_LESSONS.forEach(l => {
+      if (activeLevel !== 'all' && l.level !== activeLevel) return;
+      if (!groups[l.level]) groups[l.level] = [];
+      groups[l.level].push(l);
+    });
+
+    if (Object.keys(groups).length === 0) {
+      html += `<div class="empty-state"><p>该级别暂无数据</p></div>`;
+    } else {
+      levels.forEach(lv => {
+        if (!groups[lv]) return;
+        html += `<div class="level-section" style="margin-bottom:20px">
+          <div style="font-size:15px;font-weight:600;margin-bottom:10px;color:var(--primary)">${lv}</div>
+          <div class="session-list">`;
+        groups[lv].forEach(l => {
+          const st = getSessionStatus(l.id);
+          const percent = st.total ? Math.round(st.done / st.total * 100) : 0;
+          let statusBadge = '';
+          if (!st.imported) statusBadge = `<span style="font-size:12px;color:var(--text-muted)">未开始</span>`;
+          else if (percent === 100) statusBadge = `<span style="font-size:12px;color:var(--success-text)">已完成</span>`;
+          else statusBadge = `<span style="font-size:12px;color:var(--primary)">进度 ${percent}%</span>`;
+
+          html += `<div class="session-item">
+            <div class="session-info">
+              <div class="session-title">${escapeHtml(l.title)}</div>
+              <div class="session-meta">${st.total ? `共 ${st.total} 句 · ` : ''}${statusBadge}</div>
+            </div>
+            <div class="session-actions">
+              <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? '继续' : '开始练习'}</button>
+              ${st.imported ? `<button class="btn btn-secondary" data-action="restart" data-id="${l.id}">重置</button>` : ''}
+            </div>
+          </div>`;
+        });
+        html += `</div></div>`;
+      });
+    }
+    return html;
+  }
+
+  card.innerHTML = buildHtml();
+  container.appendChild(card);
+
+  card.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-level]');
+    if (btn) {
+      activeLevel = btn.dataset.level;
+      card.innerHTML = buildHtml();
+      return;
+    }
+
+    const actionBtn = e.target.closest('[data-action]');
+    if (!actionBtn) return;
+    const presetId = actionBtn.dataset.id;
+    const preset = PRESET_LESSONS.find(p => p.id === presetId);
+    if (!preset) return;
+    const action = actionBtn.dataset.action;
+
+    if (action === 'start') {
+      let sessionId = importedMap[presetId];
+      if (!sessionId) {
+        const sentences = splitSentences(preset.text);
+        const session = {
+          id: generateId(),
+          title: preset.title,
+          text: preset.text,
+          sentences,
+          progress: initProgress(sentences.length),
+          createdAt: Date.now()
+        };
+        const allSessions = loadSessions();
+        allSessions.unshift(session);
+        saveSessions(allSessions);
+        sessionId = session.id;
+        importedMap[presetId] = sessionId;
+        savePresetImported(importedMap);
+      }
+      activeSessionId = sessionId;
+      setPage('practice');
+    } else if (action === 'restart') {
+      const sessionId = importedMap[presetId];
+      if (!sessionId) return;
+      const allSessions = loadSessions();
+      const s = allSessions.find(x => x.id === sessionId);
+      if (s) {
+        s.progress = initProgress(s.sentences.length);
+        saveSessions(allSessions);
+        activeSessionId = sessionId;
+        setPage('practice');
+      }
+    }
+  });
+}
+
 function renderHelp(container) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
     <h2 style="margin-bottom:12px;font-size:18px">帮助</h2>
-    <p style="margin-bottom:8px">1. 点击“新建练习”输入英文原文，系统会自动分句。</p>
+    <p style="margin-bottom:8px">1. 点击"新建练习"输入英文原文，系统会自动分句。</p>
     <p style="margin-bottom:8px">2. 播放按钮朗读当前句子，可调整语速。</p>
     <p style="margin-bottom:8px">3. 首次听写输入整句，提交后系统会自动对齐单词，正确的词锁定，缺失或错误的词变成空格，分别填入即可。</p>
-    <p style="margin-bottom:8px">4. 点击“显示原文”可查看原文、句子翻译及单词翻译。</p>
+    <p style="margin-bottom:8px">4. 点击"显示原文"可查看原文、句子翻译及单词翻译。</p>
     <p style="margin-bottom:8px">5. 进度自动保存，退出后下次可继续。</p>
     <p>6. 再次练习会清空当前进度重新开始。</p>
+    <p style="margin-top:8px;color:var(--text-muted)">7. 在"练习库"中可按 CEFR 级别（A1-C2）选择 180 篇原创听写文本，一键开始练习。</p>
   `;
   container.appendChild(card);
 }
