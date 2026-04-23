@@ -1204,6 +1204,11 @@ function renderDrillPractice(container) {
 
     drillSession.results.push({ sentence, correctIndices, wrongIndices });
 
+    // Immediately update mistake counts for this sentence
+    const correctWords = correctIndices.map(i => words[i]);
+    const wrongWords = wrongIndices.map(i => words[i]);
+    updateMistakeFromDrill(correctWords, wrongWords);
+
     // Show result inline
     const dictationArea = card.querySelector('.dictation-area');
     const line = document.createElement('div');
@@ -1246,16 +1251,7 @@ function renderDrillPractice(container) {
 }
 
 function finishDrill() {
-  const mistakes = loadMistakes();
-  const correctWords = [];
-  const wrongWords = [];
-  drillSession.results.forEach(r => {
-    const words = r.sentence.trim().split(/\s+/);
-    r.correctIndices.forEach(i => correctWords.push(words[i]));
-    r.wrongIndices.forEach(i => wrongWords.push(words[i]));
-  });
-  updateMistakeFromDrill(correctWords, wrongWords);
-
+  // Mistakes are updated sentence-by-sentence in doDrillCheck
   const totalCorrect = drillSession.results.reduce((s, r) => s + r.correctIndices.length, 0);
   const totalWords = drillSession.results.reduce((s, r) => s + r.sentence.trim().split(/\s+/).length, 0);
   const accuracy = totalWords ? Math.round(totalCorrect / totalWords * 100) : 0;
