@@ -1,13 +1,63 @@
 const STORAGE_KEY = 'dictation-app-v1';
 const PRESET_KEY = 'dictation-preset-imported-v1';
+const LIBRARIES_KEY = 'dictation-libraries-v1';
 
 // PRESET_LESSONS 定义在 preset-lessons.js 中，按 CEFR 级别组织
 
-function loadPresetImported() {
-  try { return JSON.parse(localStorage.getItem(PRESET_KEY)) || {}; } catch { return {}; }
+// 兼容旧格式（旧格式为 { presetId: sessionId }）
+function loadPresetImportedMap() {
+  try {
+    const raw = localStorage.getItem(PRESET_KEY);
+    if (!raw) return {};
+    const data = JSON.parse(raw);
+    if (data && Object.keys(data).length > 0 && !data.default) {
+      const firstVal = Object.values(data)[0];
+      if (typeof firstVal === 'string') {
+        return { default: data };
+      }
+    }
+    return data || {};
+  } catch { return {}; }
 }
-function savePresetImported(map) {
+function savePresetImportedMap(map) {
   localStorage.setItem(PRESET_KEY, JSON.stringify(map));
+}
+function getPresetImportedForLibrary(libraryId) {
+  const map = loadPresetImportedMap();
+  return map[libraryId] || {};
+}
+function setPresetImportedForLibrary(libraryId, libraryMap) {
+  const map = loadPresetImportedMap();
+  map[libraryId] = libraryMap;
+  savePresetImportedMap(map);
+}
+
+// 资料库管理
+function loadLibraries() {
+  try {
+    const data = JSON.parse(localStorage.getItem(LIBRARIES_KEY));
+    if (data && Array.isArray(data.libraries)) return data;
+  } catch {}
+  return { libraries: [], activeLibraryId: 'default' };
+}
+function saveLibraries(data) {
+  localStorage.setItem(LIBRARIES_KEY, JSON.stringify(data));
+}
+function getActiveLibrary() {
+  const data = loadLibraries();
+  if (data.activeLibraryId === 'default') {
+    return { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS };
+  }
+  const lib = data.libraries.find(l => l.id === data.activeLibraryId);
+  if (lib) return { ...lib, type: 'imported' };
+  return { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS };
+}
+function getAllLibraries() {
+  const data = loadLibraries();
+  return [
+    { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS },
+    ...data.libraries.map(l => ({ ...l, type: 'imported' }))
+  ];
 }
 
 function loadSessions() {
@@ -33,9 +83,10 @@ function addMistakeWords(wordList) {
   const m = loadMistakes();
   const now = Date.now();
   wordList.forEach(w => {
-    const key = normalizeWord(w);
+    const clean = stripPunctuation(w);
+    const key = normalizeWord(clean);
     if (!key) return;
-    if (!m[key]) m[key] = { word: w, count: 0, lastAt: now };
+    if (!m[key]) m[key] = { word: clean, count: 0, lastAt: now };
     m[key].count += 1;
     m[key].lastAt = now;
   });
@@ -45,7 +96,8 @@ function updateMistakeFromDrill(correctWords, wrongWords) {
   const m = loadMistakes();
   const now = Date.now();
   correctWords.forEach(w => {
-    const key = normalizeWord(w);
+    const clean = stripPunctuation(w);
+    const key = normalizeWord(clean);
     if (m[key]) {
       m[key].count -= 1;
       m[key].lastAt = now;
@@ -53,7 +105,8 @@ function updateMistakeFromDrill(correctWords, wrongWords) {
     }
   });
   wrongWords.forEach(w => {
-    const key = normalizeWord(w);
+    const clean = stripPunctuation(w);
+    const key = normalizeWord(clean);
     if (m[key]) {
       m[key].count += 1;
       m[key].lastAt = now;
@@ -77,6 +130,63 @@ function getMistakeWordsForPrompt(maxWords = 30) {
     words = words.slice(0, maxWords);
   }
   return words;
+}
+
+// ============================================================
+// Data import / export
+// ============================================================
+function exportMyData() {
+  const data = {
+    version: 1,
+    exportedAt: Date.now(),
+    sessions: loadSessions(),
+    mistakes: loadMistakes()
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dictation-data-${new Date().toISOString().slice(0, 10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('数据已导出');
+}
+
+async function importMyData(file) {
+  const text = await file.text();
+  const data = JSON.parse(text);
+  if (!data.sessions || !data.mistakes) {
+    showToast('数据文件格式不正确');
+    return;
+  }
+  const mode = confirm('点击「确定」覆盖现有数据，点击「取消」合并导入。');
+  if (mode) {
+    saveSessions(data.sessions);
+    saveMistakes(data.mistakes);
+    showToast('数据已覆盖导入');
+  } else {
+    const existingSessions = loadSessions();
+    const existingMistakes = loadMistakes();
+    const sessionMap = new Map();
+    existingSessions.forEach(s => sessionMap.set(s.id, s));
+    data.sessions.forEach(s => sessionMap.set(s.id, s));
+    saveSessions(Array.from(sessionMap.values()));
+
+    const mergedMistakes = { ...existingMistakes };
+    Object.entries(data.mistakes).forEach(([key, val]) => {
+      if (mergedMistakes[key]) {
+        mergedMistakes[key].count = Math.max(mergedMistakes[key].count, val.count);
+        if (val.lastAt > mergedMistakes[key].lastAt) {
+          mergedMistakes[key].lastAt = val.lastAt;
+          mergedMistakes[key].word = val.word;
+        }
+      } else {
+        mergedMistakes[key] = val;
+      }
+    });
+    saveMistakes(mergedMistakes);
+    showToast('数据已合并导入');
+  }
 }
 
 const ICONS = {
@@ -104,7 +214,10 @@ const ICONS = {
   clipboardCheck: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="m9 14 2 2 4-4"/></svg>`,
   zap: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
   list: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>`,
-  message: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`
+  message: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+  download: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+  upload: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+  database: `<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>`
 };
 
 function splitSentences(text) {
@@ -114,6 +227,9 @@ function splitSentences(text) {
 
 function normalizeWord(word) {
   return word.trim().toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+}
+function stripPunctuation(word) {
+  return word.trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
 }
 
 function showToast(msg) {
@@ -243,6 +359,13 @@ function renderHome(container) {
           <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建听写</button>
           <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
         </div>
+        <div style="margin-top:20px;padding-top:20px;border-top:1.5px solid var(--border)">
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">已有备份？可导入历史数据</div>
+          <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+            <button class="btn btn-secondary" id="btn-import-data-empty">${ICONS.upload}导入我的数据</button>
+            <input type="file" id="data-file-input-empty" accept=".json" style="display:none">
+          </div>
+        </div>
       </div>`;
   } else {
     let html = `<div class="card-title" style="margin-bottom:16px">我的听写</div>
@@ -277,10 +400,74 @@ function renderHome(container) {
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建听写</button>
       <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
+    </div>
+    <div style="margin-top:28px;padding-top:24px;border-top:1.5px solid var(--border)">
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">我的数据</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">导出、导入或清空你的听写记录和错题数据。</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-secondary" id="btn-export-data">${ICONS.download}导出我的数据</button>
+        <button class="btn btn-secondary" id="btn-import-data">${ICONS.upload}导入我的数据</button>
+        <button class="btn btn-danger" id="btn-clear-data">${ICONS.trash}清空数据</button>
+        <input type="file" id="data-file-input" accept=".json" style="display:none">
+      </div>
     </div>`;
     card.innerHTML = html;
   }
   container.appendChild(card);
+
+  // Export / import handlers
+  const exportBtn = card.querySelector('#btn-export-data');
+  if (exportBtn) exportBtn.addEventListener('click', () => exportMyData());
+
+  const importBtn = card.querySelector('#btn-import-data');
+  const dataFileInput = card.querySelector('#data-file-input');
+  if (importBtn && dataFileInput) {
+    importBtn.addEventListener('click', () => dataFileInput.click());
+    dataFileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await importMyData(file);
+        renderMain();
+      } catch (err) {
+        showToast('导入失败：' + (err.message || '未知错误'));
+      }
+      dataFileInput.value = '';
+    });
+  }
+
+  // Empty state import handler
+  const importBtnEmpty = card.querySelector('#btn-import-data-empty');
+  const dataFileInputEmpty = card.querySelector('#data-file-input-empty');
+  if (importBtnEmpty && dataFileInputEmpty) {
+    importBtnEmpty.addEventListener('click', () => dataFileInputEmpty.click());
+    dataFileInputEmpty.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await importMyData(file);
+        renderMain();
+      } catch (err) {
+        showToast('导入失败：' + (err.message || '未知错误'));
+      }
+      dataFileInputEmpty.value = '';
+    });
+  }
+
+  // Clear data handler
+  const clearBtn = card.querySelector('#btn-clear-data');
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      if (confirm('确定清空所有数据吗？\n\n这将删除：\n· 所有听写记录\n· 所有错题记录\n· 所有资料库导入映射\n\n此操作不可恢复，请确认已导出备份。')) {
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(MISTAKES_KEY);
+        localStorage.removeItem(PRESET_KEY);
+        localStorage.removeItem(LIBRARIES_KEY);
+        showToast('数据已清空');
+        renderMain();
+      }
+    });
+  }
 
   card.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-action]');
@@ -879,8 +1066,11 @@ function renderResult(container) {
 }
 
 function renderLibrary(container) {
-  const importedMap = loadPresetImported();
+  const activeLibrary = getActiveLibrary();
+  const lessons = activeLibrary.lessons || [];
+  let importedMap = getPresetImportedForLibrary(activeLibrary.id);
   const sessions = loadSessions();
+  const allLibraries = getAllLibraries();
   const card = document.createElement('div');
   card.className = 'card';
 
@@ -899,14 +1089,44 @@ function renderLibrary(container) {
 
   function buildHtml() {
     let html = `<div class="card-title">资料库</div>
-    <div class="card-desc">共 ${PRESET_LESSONS.length} 篇原创听写文本，覆盖 CEFR A1-C2 六个级别。</div>
-    <div class="level-filter">
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+      <div class="card-desc" style="margin-bottom:0">当前：${escapeHtml(activeLibrary.name)} · 共 ${lessons.length} 篇</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-secondary" id="btn-import-library">${ICONS.upload}导入资料库</button>
+        <input type="file" id="library-file-input" accept=".json" style="display:none">
+      </div>
+    </div>`;
+
+    // Library selector
+    html += `<div class="level-filter" style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);align-items:center">
+      <span style="font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap">资料库：</span>`;
+    allLibraries.forEach(lib => {
+      const isActive = lib.id === activeLibrary.id;
+      html += `<button class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}" data-switch-lib="${lib.id}" style="position:relative">
+        ${escapeHtml(lib.name)}${lib.type === 'imported' ? ` <span data-delete-lib="${lib.id}" style="margin-left:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.7" title="删除" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--danger)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>` : ''}
+      </button>`;
+    });
+    html += `</div>`;
+
+    // 动态级别列表
+    const cefrOrder = ['A1','A2','B1','B2','C1','C2'];
+    const displayLevels = [...new Set(lessons.map(l => l.level).filter(Boolean))].sort((a, b) => {
+      const ia = cefrOrder.indexOf(a);
+      const ib = cefrOrder.indexOf(b);
+      if (ia !== -1 && ib !== -1) return ia - ib;
+      if (ia !== -1) return -1;
+      if (ib !== -1) return 1;
+      return a.localeCompare(b);
+    });
+
+    // Level filter
+    html += `<div class="level-filter">
       <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">全部</button>
-      ${levels.map(lv => `<button class="btn btn-sm ${activeLevel === lv ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
+      ${displayLevels.map(lv => `<button class="btn btn-sm ${activeLevel === lv ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
     </div>`;
 
     const groups = {};
-    PRESET_LESSONS.forEach(l => {
+    lessons.forEach(l => {
       if (activeLevel !== 'all' && l.level !== activeLevel) return;
       if (!groups[l.level]) groups[l.level] = [];
       groups[l.level].push(l);
@@ -915,7 +1135,7 @@ function renderLibrary(container) {
     if (Object.keys(groups).length === 0) {
       html += `<div class="empty-state"><p>该级别暂无数据</p></div>`;
     } else {
-      levels.forEach(lv => {
+      displayLevels.forEach(lv => {
         if (!groups[lv]) return;
         html += `<div class="level-section" style="margin-bottom:24px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
@@ -955,18 +1175,108 @@ function renderLibrary(container) {
   card.innerHTML = buildHtml();
   container.appendChild(card);
 
+  async function handleLibraryFile(e) {
+    const input = e.target;
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      if (!data.name || !Array.isArray(data.lessons)) {
+        showToast('资料库格式不正确：需要 name 和 lessons 字段');
+        return;
+      }
+      for (const l of data.lessons) {
+        if (!l.id || !l.level || !l.title || !l.text) {
+          showToast('课程格式不正确：每课需要 id、level、title、text');
+          return;
+        }
+      }
+      const libData = loadLibraries();
+      const allNames = getAllLibraries().map(l => l.name);
+      let name = data.name;
+      if (allNames.includes(name)) {
+        name = name + ' (' + new Date().toLocaleDateString() + ')';
+      }
+      const newLib = {
+        id: 'lib-' + generateId(),
+        name,
+        lessons: data.lessons
+      };
+      libData.libraries.push(newLib);
+      saveLibraries(libData);
+      showToast(`资料库 "${name}" 导入成功`);
+      renderMain();
+    } catch (err) {
+      showToast('导入失败：' + (err.message || '未知错误'));
+    }
+    input.value = '';
+  }
+
+  // Import library handler
+  const importBtn = card.querySelector('#btn-import-library');
+  const fileInput = card.querySelector('#library-file-input');
+  if (importBtn && fileInput) {
+    importBtn.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', handleLibraryFile);
+  }
+
   card.addEventListener('click', (e) => {
+    // Delete library
+    const deleteBtn = e.target.closest('[data-delete-lib]');
+    if (deleteBtn) {
+      e.stopPropagation();
+      const libId = deleteBtn.dataset.deleteLib;
+      if (libId === 'default') return;
+      const lib = getAllLibraries().find(l => l.id === libId);
+      if (!lib) return;
+      if (confirm(`确定删除资料库 "${lib.name}" 吗？相关的练习映射将被清理。`)) {
+        const libData = loadLibraries();
+        libData.libraries = libData.libraries.filter(l => l.id !== libId);
+        if (libData.activeLibraryId === libId) {
+          libData.activeLibraryId = 'default';
+        }
+        saveLibraries(libData);
+        const presetMap = loadPresetImportedMap();
+        delete presetMap[libId];
+        savePresetImportedMap(presetMap);
+        showToast('资料库已删除');
+        renderMain();
+      }
+      return;
+    }
+
+    // Switch library
+    const switchBtn = e.target.closest('[data-switch-lib]');
+    if (switchBtn) {
+      const libId = switchBtn.dataset.switchLib;
+      if (libId !== activeLibrary.id) {
+        const libData = loadLibraries();
+        libData.activeLibraryId = libId;
+        saveLibraries(libData);
+        renderMain();
+      }
+      return;
+    }
+
     const btn = e.target.closest('[data-level]');
     if (btn) {
       activeLevel = btn.dataset.level;
       card.innerHTML = buildHtml();
+      // Re-attach import handlers after rebuild
+      const newImportBtn = card.querySelector('#btn-import-library');
+      const newFileInput = card.querySelector('#library-file-input');
+      if (newImportBtn && newFileInput) {
+        newImportBtn.addEventListener('click', () => newFileInput.click());
+        newFileInput.addEventListener('change', handleLibraryFile);
+      }
       return;
     }
 
     const actionBtn = e.target.closest('[data-action]');
     if (!actionBtn) return;
     const presetId = actionBtn.dataset.id;
-    const preset = PRESET_LESSONS.find(p => p.id === presetId);
+    const preset = lessons.find(p => p.id === presetId);
     if (!preset) return;
     const action = actionBtn.dataset.action;
 
@@ -987,7 +1297,7 @@ function renderLibrary(container) {
         saveSessions(allSessions);
         sessionId = session.id;
         importedMap[presetId] = sessionId;
-        savePresetImported(importedMap);
+        setPresetImportedForLibrary(activeLibrary.id, importedMap);
       }
       activeSessionId = sessionId;
       setPage('practice');
