@@ -158,6 +158,9 @@
 ├── app.js                      # 核心逻辑
 ├── preset-lessons.js           # 180 篇 CEFR 分级听写文本（默认资料库）
 ├── test-library-nc-style.json  # 测试资料库示例（A1-C2 原创文本）
+├── articles_final.html         # 新概念英语原文 HTML（数据源）
+├── generate-library.js         # 从 articles_final.html 生成 nce-library.json
+├── nce-library.json            # 新概念英语资料库（全四册 288 课）
 └── README.md                   # 本文件
 ```
 

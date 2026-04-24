@@ -377,7 +377,7 @@ function renderHome(container) {
       const percent = total ? Math.round(done / total * 100) : 0;
       html += `<div class="session-item">
         <div class="session-info">
-          <div class="session-title">${escapeHtml(s.title || '未命名练习')}</div>
+          <div class="session-title">${escapeHtml(s.title || '未命名练习')}<span style="font-size:12px;color:var(--text-muted);font-weight:400;margin-left:6px">${s.libraryName && s.level ? escapeHtml(s.libraryName + ' · ' + s.level) : ''}</span></div>
           <div class="session-meta">
             <span>共 ${total} 句</span>
             <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
@@ -477,6 +477,19 @@ function renderHome(container) {
     if (action === 'delete') {
       if (confirm('确定删除此练习吗？')) {
         saveSessions(loadSessions().filter(x => x.id !== id));
+        // 清理资料库导入映射
+        const allLibs = getAllLibraries();
+        for (const lib of allLibs) {
+          const map = getPresetImportedForLibrary(lib.id);
+          let changed = false;
+          for (const [presetId, sessionId] of Object.entries(map)) {
+            if (sessionId === id) {
+              delete map[presetId];
+              changed = true;
+            }
+          }
+          if (changed) setPresetImportedForLibrary(lib.id, map);
+        }
         renderMain();
         showToast('已删除');
       }
@@ -1290,7 +1303,9 @@ function renderLibrary(container) {
           text: preset.text,
           sentences,
           progress: initProgress(sentences.length),
-          createdAt: Date.now()
+          createdAt: Date.now(),
+          libraryName: activeLibrary.name,
+          level: preset.level
         };
         const allSessions = loadSessions();
         allSessions.unshift(session);
