@@ -1267,6 +1267,15 @@ function renderPractice(container) {
 
   // Voice picker
   attachVoiceToggleListeners(card);
+
+  // 自动播放 + 自动聚焦输入框
+  setTimeout(() => {
+    const rate = parseFloat(rateInput.value);
+    const ok = speak(sentence, rate, () => { if (isPlaying) setPlaying(false); });
+    if (ok) setPlaying(true);
+    const target = card.querySelector('#full-input') || card.querySelector('.word-gap');
+    if (target) target.focus();
+  }, 200);
 }
 
 function saveCurrentDraft(progress, idx, words, card) {
