@@ -590,25 +590,31 @@ function renderHome(container) {
         </div>
       </div>`;
   } else {
-    let html = `<div class="card-title" style="margin-bottom:16px">我的听写</div>
-      <div class="session-list">`;
+    // 分组：进行中 vs 已完成
+    const inProgress = [];
+    const completed = [];
     sessions.forEach(s => {
       const progress = s.progress || {};
       const done = (progress.completedSentences || []).filter(Boolean).length;
       const total = s.sentences.length;
       const percent = total ? Math.round(done / total * 100) : 0;
-      html += `<div class="session-item">
+      const item = { ...s, done, total, percent };
+      if (percent === 100) completed.push(item); else inProgress.push(item);
+    });
+
+    function sessionItemHtml(s) {
+      return `<div class="session-item">
         <div class="session-info">
           <div class="session-title">${escapeHtml(s.title || '未命名练习')}<span style="font-size:12px;color:var(--text-muted);font-weight:400;margin-left:6px">${s.libraryName && s.level ? escapeHtml(s.libraryName + ' · ' + s.level) : ''}</span></div>
           <div class="session-meta">
-            <span>共 ${total} 句</span>
+            <span>共 ${s.total} 句</span>
             <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
-            <span>${percent}% 完成</span>
+            <span>${s.percent}% 完成</span>
             <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
             <span>${new Date(s.createdAt).toLocaleDateString()}</span>
           </div>
           <div class="progress-track" style="margin-top:8px;max-width:240px">
-            <div class="progress-fill" style="width:${percent}%"></div>
+            <div class="progress-fill" style="width:${s.percent}%"></div>
           </div>
         </div>
         <div class="session-actions">
@@ -617,8 +623,26 @@ function renderHome(container) {
           <button class="btn btn-danger" data-action="delete" data-id="${s.id}">${ICONS.trash}删除</button>
         </div>
       </div>`;
-    });
-    html += `</div>
+    }
+
+    let html = `<div class="card-title" style="margin-bottom:16px">我的听写</div>`;
+
+    if (inProgress.length) {
+      html += `<div class="session-list">${inProgress.map(sessionItemHtml).join('')}</div>`;
+    }
+
+    if (completed.length) {
+      html += `
+      <details style="margin-top:${inProgress.length ? '20' : '0'}px">
+        <summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--text-secondary);padding:8px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:6px">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          已完成 <span style="background:var(--bg);color:var(--success,#52c41a);padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700">${completed.length}</span>
+        </summary>
+        <div class="session-list" style="margin-top:8px">${completed.map(sessionItemHtml).join('')}</div>
+      </details>`;
+    }
+
+    html += `
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
       <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建听写</button>
       <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
