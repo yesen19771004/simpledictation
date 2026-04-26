@@ -625,7 +625,7 @@ function renderHome(container) {
     </div>
     <div style="margin-top:28px;padding-top:24px;border-top:1.5px solid var(--border)">
       <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">我的数据</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">导出、导入或清空你的听写记录和错题数据。</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">导出、导入或清空你的听写记录和错误数据。</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-secondary" id="btn-export-data">${ICONS.download}导出我的数据</button>
         <button class="btn btn-secondary" id="btn-import-data">${ICONS.upload}导入我的数据</button>
@@ -680,7 +680,7 @@ function renderHome(container) {
   const clearBtn = card.querySelector('#btn-clear-data');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      if (confirm('确定清空所有数据吗？\n\n这将删除：\n· 所有听写记录\n· 所有错题记录\n· 所有资料库导入映射\n\n此操作不可恢复，请确认已导出备份。')) {
+      if (confirm('确定清空所有数据吗？\n\n这将删除：\n· 所有听写记录\n· 所有错误记录\n· 所有资料库导入映射\n\n此操作不可恢复，请确认已导出备份。')) {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(MISTAKES_KEY);
         localStorage.removeItem(PRESET_KEY);
@@ -1597,7 +1597,7 @@ function renderDrill(container) {
       <div class="empty-state">
         <div class="empty-state-icon">${ICONS.target}</div>
         <h3>暂无待训练词汇</h3>
-        <p>在常规听写练习中，系统会自动记录你听写出错的单词。积累足够错题后，来这里进行专项突破。</p>
+        <p>在常规听写练习中，系统会自动记录你听写出错的单词。积累足够错误记录后，来这里进行专项突破。</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}去资料库</button>
         </div>
@@ -1673,9 +1673,15 @@ function renderDrill(container) {
     </div>
 
     <div style="margin-top:24px">
-      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px">${ICONS.list}错题记录</div>
-      <div style="display:flex;flex-wrap:wrap;gap:8px">
-        ${list.map(m => `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary)"><strong style="color:var(--text)">${escapeHtml(m.word)}</strong><span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;opacity:0.5"></span>出错 ${m.count} 次</span>`).join('')}
+      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px">${ICONS.list}错误记录 <span style="font-weight:400;color:var(--text-muted);font-size:12px">（点击选中，批量删除）</span></div>
+      <div id="mistake-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+        ${list.map(m => `<span class="mistake-chip" data-key="${normalizeWord(m.word)}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary);cursor:pointer;user-select:none;transition:all .15s"><strong style="color:var(--text)">${escapeHtml(m.word)}</strong><span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;opacity:0.5"></span>出错 ${m.count} 次</span>`).join('')}
+      </div>
+      <div id="batch-actions" style="display:none;gap:8px;align-items:center">
+        <span style="font-size:13px;color:var(--text-muted)" id="selected-count">已选 0 个</span>
+        <button class="btn btn-sm btn-secondary" id="btn-select-all">全选</button>
+        <button class="btn btn-sm btn-secondary" id="btn-deselect-all">取消全选</button>
+        <button class="btn btn-sm btn-danger" id="btn-batch-delete">${ICONS.trash}删除选中</button>
       </div>
     </div>
   `;
@@ -1716,6 +1722,55 @@ function renderDrill(container) {
     } catch {
       showToast('复制失败，请手动复制');
     }
+  });
+
+  // --- 错误记录选中与批量删除 ---
+  const selectedKeys = new Set();
+  const chipsContainer = card.querySelector('#mistake-chips');
+  const batchActions = card.querySelector('#batch-actions');
+  const selectedCountEl = card.querySelector('#selected-count');
+
+  function updateChipStyles() {
+    chipsContainer.querySelectorAll('.mistake-chip').forEach(chip => {
+      const key = chip.dataset.key;
+      if (selectedKeys.has(key)) {
+        chip.style.background = 'var(--danger-soft)';
+        chip.style.borderColor = 'var(--danger)';
+        chip.style.color = 'var(--danger)';
+      } else {
+        chip.style.background = '';
+        chip.style.borderColor = '';
+        chip.style.color = '';
+      }
+    });
+    batchActions.style.display = selectedKeys.size > 0 ? 'flex' : 'none';
+    selectedCountEl.textContent = `已选 ${selectedKeys.size} 个`;
+  }
+
+  chipsContainer.addEventListener('click', (e) => {
+    const chip = e.target.closest('.mistake-chip');
+    if (!chip) return;
+    const key = chip.dataset.key;
+    if (selectedKeys.has(key)) selectedKeys.delete(key); else selectedKeys.add(key);
+    updateChipStyles();
+  });
+
+  card.querySelector('#btn-select-all').addEventListener('click', () => {
+    chipsContainer.querySelectorAll('.mistake-chip').forEach(c => selectedKeys.add(c.dataset.key));
+    updateChipStyles();
+  });
+  card.querySelector('#btn-deselect-all').addEventListener('click', () => {
+    selectedKeys.clear();
+    updateChipStyles();
+  });
+  card.querySelector('#btn-batch-delete').addEventListener('click', () => {
+    if (!selectedKeys.size) return;
+    if (!confirm(`确定删除选中的 ${selectedKeys.size} 个错误记录吗？`)) return;
+    const m = loadMistakes();
+    selectedKeys.forEach(k => delete m[k]);
+    saveMistakes(m);
+    showToast(`已删除 ${selectedKeys.size} 条记录`);
+    renderMain();
   });
 
   // Start drill
