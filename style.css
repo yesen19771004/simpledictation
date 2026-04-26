@@ -802,6 +802,16 @@ input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
   transform: translateY(-1px);
 }
 
+.word-tip {
+  font-size: 12px;
+  color: var(--success);
+  background: var(--success-soft);
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  white-space: nowrap;
+}
+
 #word-trans {
   margin-top: 10px;
   font-size: 14px;

@@ -1022,21 +1022,8 @@ function renderPractice(container) {
       <button class="btn btn-secondary" id="btn-skip">${ICONS.skipForward}跳过</button>
     </div>
     <div class="side-panel" id="side-panel" style="display:none">
-      <div class="accordion">
-        <button class="accordion-header" id="acc-original-btn">原文</button>
-        <div class="accordion-body" id="acc-original">${escapeHtml(sentence)}</div>
-      </div>
-      <div class="accordion">
-        <button class="accordion-header" id="acc-trans-btn">句子翻译</button>
-        <div class="accordion-body" id="acc-trans"><div class="translation-text">加载中...</div></div>
-      </div>
-      <div class="accordion">
-        <button class="accordion-header" id="acc-words-btn">单词翻译（点击单词查看）</button>
-        <div class="accordion-body" id="acc-words">
-          <div class="word-list" id="word-list"></div>
-          <div id="word-trans"></div>
-        </div>
-      </div>
+      <div id="word-chips-area" style="padding:16px 24px;display:flex;flex-wrap:wrap;gap:8px"></div>
+      <div id="sentence-trans" style="padding:0 24px 16px"><div class="translation-text">加载中...</div></div>
     </div>
   `;
   container.appendChild(card);
@@ -1139,35 +1126,35 @@ function renderPractice(container) {
   // Show original / side panel
   const sidePanel = card.querySelector('#side-panel');
   card.querySelector('#btn-show-original').addEventListener('click', () => {
-    sidePanel.style.display = sidePanel.style.display === 'none' ? 'block' : 'none';
-    loadTranslations(sentence, words, card);
-  });
-
-  // Accordion toggle
-  ['original', 'trans', 'words'].forEach(key => {
-    const btn = card.querySelector(`#acc-${key}-btn`);
-    const body = card.querySelector(`#acc-${key}`);
-    if (btn && body) {
-      btn.addEventListener('click', () => {
-        body.classList.toggle('hidden');
-        btn.classList.toggle('expanded', !body.classList.contains('hidden'));
+    const showing = sidePanel.style.display === 'none';
+    sidePanel.style.display = showing ? 'block' : 'none';
+    if (showing && !sidePanel.dataset.loaded) {
+      sidePanel.dataset.loaded = '1';
+      // 生成单词卡片
+      const chipsArea = card.querySelector('#word-chips-area');
+      words.forEach(w => {
+        const wrapper = document.createElement('span');
+        wrapper.style.cssText = 'display:inline-flex;flex-direction:column;align-items:center';
+        const chip = document.createElement('span');
+        chip.className = 'word-chip';
+        chip.textContent = w;
+        const tip = document.createElement('span');
+        tip.className = 'word-tip';
+        tip.style.display = 'none';
+        chip.addEventListener('click', async () => {
+          if (tip.style.display !== 'none') { tip.style.display = 'none'; return; }
+          tip.textContent = '…';
+          tip.style.display = '';
+          const t = await translateText(w);
+          tip.textContent = t || '（暂无翻译）';
+        });
+        wrapper.appendChild(chip);
+        wrapper.appendChild(tip);
+        chipsArea.appendChild(wrapper);
       });
+      // 加载句子翻译
+      loadTranslations(sentence, card);
     }
-  });
-
-  // Word chips click
-  const wordList = card.querySelector('#word-list');
-  const wordTrans = card.querySelector('#word-trans');
-  words.forEach(w => {
-    const chip = document.createElement('span');
-    chip.className = 'word-chip';
-    chip.textContent = w;
-    chip.addEventListener('click', async () => {
-      wordTrans.textContent = '查询中…';
-      const t = await translateText(w);
-      wordTrans.innerHTML = `<strong>${escapeHtml(w)}</strong>：${escapeHtml(t || '（暂无翻译）')}`;
-    });
-    wordList.appendChild(chip);
   });
 
   // Check / Submit logic
@@ -1304,10 +1291,10 @@ function markSentenceDone(progress, idx) {
   progress.currentSentenceIdx = next < progress.completedSentences.length ? next : progress.completedSentences.length;
 }
 
-async function loadTranslations(sentence, words, card) {
-  const transBody = card.querySelector('#acc-trans');
+async function loadTranslations(sentence, card) {
+  const el = card.querySelector('#sentence-trans');
   const t = await translateText(sentence);
-  transBody.innerHTML = `<div class="translation-text">${escapeHtml(t || '翻译失败')}</div>`;
+  el.innerHTML = `<div class="translation-text">${escapeHtml(t || '翻译失败')}</div>`;
 }
 
 function renderResult(container) {
