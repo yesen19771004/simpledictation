@@ -221,22 +221,70 @@ const ICONS = {
 };
 
 function splitSentences(text) {
-  // 按句子结束标点 .!? 分割，保留紧跟的引号
-  const parts = text.match(/[^.!?]+[.!?]+['"]?|[^.!?]+/g) || [];
-  const trimmed = parts.map(s => s.trim()).filter(s => s.length > 0);
+  // 常见缩写（点号不是句末标点）
+  const abbrs = [
+    'Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Sr', 'Jr', 'St', 'Mt',
+    'a.m', 'p.m', 'vs', 'etc', 'e.g', 'i.e',
+    'Ph.D', 'M.D', 'B.A', 'M.A', 'B.S', 'M.S'
+  ];
+  // 按长度降序
+  abbrs.sort((a, b) => b.length - a.length);
 
-  // 合并孤立的小片段（如引语后面的 'she said.' 合并到前一句）
+  let s = text;
+  // 保护缩写中的点号
+  for (const a of abbrs) {
+    const escaped = a.replace(/\./g, '\\.');
+    const re = new RegExp('\\b' + escaped + '\\.(?=\\s|[.,;!?\\"\'\\]\\}\\)]|$)', 'gi');
+    if (a.includes('.')) {
+      // 多段缩写（如 a.m）：内部点号替换为 __DOT__，保留结尾点号用于断句
+      s = s.replace(re, a.replace(/\./g, '__DOT__') + '.');
+    } else {
+      // 简单缩写（如 Mr）：点号全部替换为 __DOT__（完全保护）
+      s = s.replace(re, a + '__DOT__');
+    }
+  }
+  // 保护连续单字母缩写如 U.S., U.K.（仅保护内部点号，保留结尾点号）
+  s = s.replace(/\b([A-Za-z])\.([A-Za-z])\./g, '$1__DOT__$2.');
+
+  // 按句末标点分割：. ! ? 后跟空格 + 大写字母或引号或括号
+  // 这种模式能避免在缩写点号处误切
+  const parts = [];
+  let last = 0;
+  const re = /(?<=[.!?])\s+(?=[A-Z"'[{(])/g;
+  let match;
+  while ((match = re.exec(s)) !== null) {
+    parts.push(s.slice(last, match.index + 1));
+    last = match.index + match[0].length;
+  }
+  if (last < s.length) {
+    parts.push(s.slice(last));
+  }
+
+  // 回退：按标点分割（当上面策略不生效时）
+  if (parts.length <= 1) {
+    const fallback = s.match(/[^.!?]+[.!?]+['"]?|[^.!?]+/g) || [];
+    parts.length = 0;
+    for (const p of fallback) {
+      const t = p.trim();
+      if (t) parts.push(t);
+    }
+  }
+
+  // 恢复点号
+  const restored = parts.map(p => p.replace(/__DOT__/g, '.').trim()).filter(p => p.length > 0);
+
+  // 合并孤立小片段（如引语后面的 'she said.' 合并到前一句）
   const result = [];
-  for (const s of trimmed) {
+  for (const p of restored) {
     if (result.length > 0) {
       const last = result[result.length - 1];
-      const wordCount = s.split(/\s+/).length;
-      if (wordCount <= 3 && /['"]$/.test(last) && !/^['"]/.test(s)) {
-        result[result.length - 1] = last + ' ' + s;
+      const wordCount = p.split(/\s+/).length;
+      if (wordCount <= 3 && /['"]$/.test(last) && !/^['"]/.test(p)) {
+        result[result.length - 1] = last + ' ' + p;
         continue;
       }
     }
-    result.push(s);
+    result.push(p);
   }
   return result;
 }
