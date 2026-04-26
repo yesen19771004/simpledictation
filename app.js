@@ -242,20 +242,164 @@ function splitSentences(text) {
 }
 
 const NUM_WORDS = {
-  'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+  'zero': '0', 'o': '0', 'oh': '0',
+  'one': '1', 'two': '2', 'three': '3', 'four': '4',
   'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
   'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
   'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
   'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'thirty': '30',
   'forty': '40', 'fifty': '50', 'sixty': '60', 'seventy': '70',
-  'eighty': '80', 'ninety': '90'
+  'eighty': '80', 'ninety': '90',
+  'hundred': '100', 'thousand': '1000'
 };
+
+// 数字词到数值的映射（用于短语解析）
+const NUM_VALS = Object.fromEntries(
+  Object.entries(NUM_WORDS).map(([k, v]) => [k, parseInt(v, 10)])
+);
 
 function normalizeWord(word) {
   let w = word.trim().toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
   // 英文数字 ↔ 阿拉伯数字 归一化，如 "five" 与 "5" 视为相等
   if (NUM_WORDS[w] !== undefined) return NUM_WORDS[w];
   return w;
+}
+
+// 尝试从 tokens[start] 开始解析一个数字短语（如 "nineteen eighty-five" → "1985"）
+// 返回 { value: string, consumed: number } 或 null
+function tryParseNumberPhrase(tokens, start) {
+  // 收集连续的数字词/修饰词
+  const raw = [];
+  let i = start;
+  while (i < tokens.length) {
+    const w = tokens[i].toLowerCase();
+    if (w === 'double' || w === 'triple') {
+      raw.push(w);
+      i++;
+    } else if (w in NUM_VALS || /^\d+$/.test(w)) {
+      raw.push(w);
+      i++;
+    } else {
+      break;
+    }
+  }
+  if (raw.length === 0) return null;
+
+  // 展开 double / triple
+  const expanded = [];
+  for (let j = 0; j < raw.length; j++) {
+    if (raw[j] === 'double') {
+      // "double X" → X X（下一个词重复两次）
+      if (j + 1 < raw.length) {
+        expanded.push(raw[j + 1]);
+        expanded.push(raw[j + 1]);
+        j++;
+      } else return null;
+    } else if (raw[j] === 'triple') {
+      // "triple X" → X X X（下一个词重复三次）
+      if (j + 1 < raw.length) {
+        expanded.push(raw[j + 1]);
+        expanded.push(raw[j + 1]);
+        expanded.push(raw[j + 1]);
+        j++;
+      } else return null;
+    } else {
+      expanded.push(raw[j]);
+    }
+  }
+
+  // 全部映射为数值
+  const vals = expanded.map(w => {
+    const lc = w.toLowerCase();
+    if (lc in NUM_VALS) return NUM_VALS[lc];
+    if (/^\d+$/.test(w)) return parseInt(w, 10);
+    return -1;
+  });
+  if (vals.some(v => v < 0)) return null;
+
+  // 处理 hundred (100) 和 thousand (1000) 的乘法
+  // e.g. [2, 100, 1] → 2*100 + 1 = 201
+  // e.g. [2, 1000] → 2000
+  // e.g. [19, 100] → 1900
+  const processed = [];
+  let m = 0;
+  while (m < vals.length) {
+    if (vals[m] === 100 || vals[m] === 1000) {
+      if (processed.length > 0) {
+        // 前一个值 × hundred/thousand
+        processed[processed.length - 1] *= vals[m];
+      } else {
+        // 没有前值，单独使用（如 "thousand" 单独出现）
+        processed.push(vals[m]);
+      }
+      m++;
+    } else if (m + 1 < vals.length && (vals[m + 1] === 100 || vals[m + 1] === 1000)) {
+      // 当前值后面紧跟着 hundred/thousand，先跳过，等上面逻辑处理
+      processed.push(vals[m]);
+      m++;
+    } else {
+      processed.push(vals[m]);
+      m++;
+    }
+  }
+
+  // 组合策略：
+  // 1. 所有值 < 10 → 逐位拼接（电话号码/房间号模式）
+  // 2. 包含 hundred/thousand 乘法结果（值 >= 100）→ 全部相加（数量模式）
+  // 3. 其他 → 数值拼接（年份模式）
+  const allSingle = processed.every(v => v < 10);
+  if (allSingle) {
+    return { value: processed.join(''), consumed: raw.length };
+  }
+
+  // 如果任何值 >= 100（乘法结果），全部相加
+  // 如 [2000, 1] → 2001, [1900, 85] → 1985
+  if (processed.some(v => v >= 100)) {
+    const total = processed.reduce((a, b) => a + b, 0);
+    return { value: total.toString(), consumed: raw.length };
+  }
+
+  // 数值拼接：两位数与个位数组合
+  let result = '';
+  let k = 0;
+  while (k < processed.length) {
+    if (processed[k] >= 10 && k + 1 < processed.length && processed[k + 1] < 10) {
+      if (processed[k] >= 20 && processed[k] <= 90 && processed[k] % 10 === 0) {
+        // 整十数词 (twenty~ninety) + 个位数 → 算术加法
+        // 如 eighty(80) + five(5) = 85
+        result += (processed[k] + processed[k + 1]).toString();
+      } else {
+        // 其他两位数 (ten~nineteen) + 个位数 → 字符串拼接
+        // 如 nineteen(19) + o(0) = '190'
+        result += processed[k].toString() + processed[k + 1].toString();
+      }
+      k += 2;
+    } else {
+      result += processed[k].toString();
+      k++;
+    }
+  }
+  return { value: result, consumed: raw.length };
+}
+
+// 将 tokens 中的数字短语合并为数字字符串
+function normalizeTokensWithMap(tokens) {
+  const result = [];
+  const map = [];
+  let i = 0;
+  while (i < tokens.length) {
+    const parsed = tryParseNumberPhrase(tokens, i);
+    if (parsed) {
+      result.push(parsed.value);
+      map.push([i, i + parsed.consumed - 1]);
+      i += parsed.consumed;
+    } else {
+      result.push(tokens[i]);
+      map.push([i, i]);
+      i++;
+    }
+  }
+  return { tokens: result, map };
 }
 function stripPunctuation(word) {
   return word.trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
@@ -590,28 +734,38 @@ function initProgress(n) {
 
 // 基于 LCS 的单词级 diff,返回原文中匹配上的索引集合
 function diffWords(src, tgt) {
-  const m = src.length, n = tgt.length;
+  // 先做数字短语归一化（如 "nineteen eighty-five" → "1985"），
+  // 同时记录归一化后的词到原始索引的映射
+  const nSrc = normalizeTokensWithMap(src);
+  const nTgt = normalizeTokensWithMap(tgt);
+  const m = nSrc.tokens.length, n = nTgt.tokens.length;
   const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
   for (let i = 1; i <= m; i++) {
     for (let j = 1; j <= n; j++) {
-      if (normalizeWord(src[i - 1]) === normalizeWord(tgt[j - 1])) {
+      if (normalizeWord(nSrc.tokens[i - 1]) === normalizeWord(nTgt.tokens[j - 1])) {
         dp[i][j] = dp[i - 1][j - 1] + 1;
       } else {
         dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
       }
     }
   }
-  const matched = new Set();
+  const matchedNorm = new Set();
   let i = m, j = n;
   while (i > 0 && j > 0) {
-    if (normalizeWord(src[i - 1]) === normalizeWord(tgt[j - 1])) {
-      matched.add(i - 1);
+    if (normalizeWord(nSrc.tokens[i - 1]) === normalizeWord(nTgt.tokens[j - 1])) {
+      matchedNorm.add(i - 1);
       i--; j--;
     } else if (dp[i - 1][j] >= dp[i][j - 1]) {
       i--;
     } else {
       j--;
     }
+  }
+  // 通过映射展开为原始 src 的索引
+  const matched = new Set();
+  for (const idx of matchedNorm) {
+    const [start, end] = nSrc.map[idx];
+    for (let k = start; k <= end; k++) matched.add(k);
   }
   return matched;
 }
@@ -975,15 +1129,33 @@ function renderPractice(container) {
         const val = inp.value.trim();
         const userWords = val.split(/\s+/);
         let blockMatchAll = true;
+
+        // 先尝试逐词精确匹配
+        let exactMatchCount = 0;
         indices.forEach((srcIdx, k) => {
           const uw = userWords[k] || '';
           if (normalizeWord(uw) === normalizeWord(words[srcIdx])) {
             lockedSet.add(srcIdx);
-            added++;
+            exactMatchCount++;
+          }
+        });
+
+        // 如果逐词匹配不全对，尝试数字短语匹配
+        // （如原文 "1985" 对应一个词，用户写 "nineteen eighty-five" 三个词）
+        if (exactMatchCount < indices.length) {
+          // 收集该 gap 对应的原文词
+          const srcWords = indices.map(i => words[i]);
+          // 分别做数字短语归一化后比较
+          const normSrc = normalizeTokensWithMap(srcWords).tokens.join(' ');
+          const normUser = normalizeTokensWithMap(userWords).tokens.join(' ');
+          if (normSrc === normUser) {
+            // 数字短语匹配成功，锁定所有原文词
+            indices.forEach(srcIdx => lockedSet.add(srcIdx));
+            blockMatchAll = true;
           } else {
             blockMatchAll = false;
           }
-        });
+        }
         if (!blockMatchAll) {
           newDrafts[indices[0]] = val;
         }
