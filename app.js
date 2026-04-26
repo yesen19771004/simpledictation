@@ -241,8 +241,21 @@ function splitSentences(text) {
   return result;
 }
 
+const NUM_WORDS = {
+  'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+  'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+  'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
+  'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
+  'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'thirty': '30',
+  'forty': '40', 'fifty': '50', 'sixty': '60', 'seventy': '70',
+  'eighty': '80', 'ninety': '90'
+};
+
 function normalizeWord(word) {
-  return word.trim().toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+  let w = word.trim().toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
+  // 英文数字 ↔ 阿拉伯数字 归一化，如 "five" 与 "5" 视为相等
+  if (NUM_WORDS[w] !== undefined) return NUM_WORDS[w];
+  return w;
 }
 function stripPunctuation(word) {
   return word.trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
