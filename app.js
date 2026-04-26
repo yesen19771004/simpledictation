@@ -221,8 +221,24 @@ const ICONS = {
 };
 
 function splitSentences(text) {
-  const parts = text.match(/[^.!?]+[.!?]+|[^.!?]+/g) || [];
-  return parts.map(s => s.trim()).filter(s => s.length > 0);
+  // 按句子结束标点 .!? 分割，保留紧跟的引号
+  const parts = text.match(/[^.!?]+[.!?]+['"]?|[^.!?]+/g) || [];
+  const trimmed = parts.map(s => s.trim()).filter(s => s.length > 0);
+
+  // 合并孤立的小片段（如引语后面的 'she said.' 合并到前一句）
+  const result = [];
+  for (const s of trimmed) {
+    if (result.length > 0) {
+      const last = result[result.length - 1];
+      const wordCount = s.split(/\s+/).length;
+      if (wordCount <= 3 && /['"]$/.test(last) && !/^['"]/.test(s)) {
+        result[result.length - 1] = last + ' ' + s;
+        continue;
+      }
+    }
+    result.push(s);
+  }
+  return result;
 }
 
 function normalizeWord(word) {
