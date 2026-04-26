@@ -243,8 +243,13 @@ function splitSentences(text) {
       s = s.replace(re, a + '__DOT__');
     }
   }
-  // 保护连续单字母缩写如 U.S., U.K.（仅保护内部点号，保留结尾点号）
-  s = s.replace(/\b([A-Za-z])\.([A-Za-z])\./g, '$1__DOT__$2.');
+  // 通用规则：连续单字母缩写（如 R.A.F., U.S., a.m., e.g.）
+  // 匹配 "A.B."、"A.B.C." 等模式，保留最后一个点号用于断句
+  s = s.replace(/\b([A-Za-z]\.(?:[A-Za-z]\.)+)/g, (match) => {
+    // match 如 "U.S." 或 "R.A.F."
+    const withoutLastDot = match.slice(0, -1);
+    return withoutLastDot.replace(/\./g, '__DOT__') + '.';
+  });
 
   // 按句末标点分割：. ! ? 后跟空格 + 大写字母或引号或括号
   // 这种模式能避免在缩写点号处误切
@@ -259,15 +264,11 @@ function splitSentences(text) {
   if (last < s.length) {
     parts.push(s.slice(last));
   }
-
-  // 回退：按标点分割（当上面策略不生效时）
+  // 如果主逻辑没切分（没有大写字母开头的句子），回退为整段
+  // 避免在缩写点号处盲目分割
   if (parts.length <= 1) {
-    const fallback = s.match(/[^.!?]+[.!?]+['"]?|[^.!?]+/g) || [];
     parts.length = 0;
-    for (const p of fallback) {
-      const t = p.trim();
-      if (t) parts.push(t);
-    }
+    parts.push(s);
   }
 
   // 恢复点号
