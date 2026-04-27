@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dictation — 听写练习</title>
+<title id="page-title">Dictation — 听写练习</title>
 <link rel="stylesheet" href="style.css">
 <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-WTMR4TYK5J"></script>
@@ -23,6 +23,7 @@
       </div>
       <span class="brand-text">Dictation</span>
     </div>
+    <button id="btn-entry-lang" class="lang-switch" title="切换显示语言" aria-label="显示语言" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:background .15s;cursor:pointer;margin-right:8px;border:1px solid var(--border);background:var(--bg-elevated)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>English</button>
     <button id="theme-toggle" class="theme-btn" title="切换明暗模式" aria-label="切换主题">
       <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
       <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
@@ -30,8 +31,8 @@
   </header>
 
   <main class="entry-main">
-    <h1 class="entry-title">听写练习</h1>
-    <p class="entry-subtitle">选择语言，开始听写</p>
+    <h1 class="entry-title" id="entry-title">听写练习</h1>
+    <p class="entry-subtitle" id="entry-subtitle">选择语言，开始听写</p>
 
     <div class="lang-grid">
       <a href="en/index.html" class="lang-card">
@@ -50,7 +51,7 @@
       </a>
     </div>
 
-    <p class="entry-more">更多语言即将推出……</p>
+    <p class="entry-more" id="entry-more">更多语言即将推出……</p>
   </main>
 
   <footer class="entry-footer">
@@ -61,6 +62,45 @@
 </div>
 
 <script>
+  const entryLangKey = 'dictation-entry-lang';
+  let entryLang = (() => { try { return localStorage.getItem(entryLangKey) || 'zh'; } catch { return 'zh'; } })();
+
+  const ENTRY_STRINGS = {
+    zh: {
+      title: 'Dictation — 听写练习',
+      h1: '听写练习',
+      subtitle: '选择语言，开始听写',
+      more: '更多语言即将推出……',
+      btnText: 'English',
+      themeTitle: '切换明暗模式'
+    },
+    en: {
+      title: 'Dictation — Dictation Practice',
+      h1: 'Dictation Practice',
+      subtitle: 'Choose a language to start',
+      more: 'More languages coming soon…',
+      btnText: '中文',
+      themeTitle: 'Toggle theme'
+    }
+  };
+
+  function applyEntryLang(lang) {
+    entryLang = lang;
+    try { localStorage.setItem(entryLangKey, lang); } catch {}
+    const s = ENTRY_STRINGS[lang];
+    document.getElementById('page-title').textContent = s.title;
+    document.getElementById('entry-title').textContent = s.h1;
+    document.getElementById('entry-subtitle').textContent = s.subtitle;
+    document.getElementById('entry-more').textContent = s.more;
+    const btn = document.getElementById('btn-entry-lang');
+    if (btn) btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' + s.btnText;
+    document.getElementById('theme-toggle').title = s.themeTitle;
+  }
+
+  function toggleEntryLang() {
+    applyEntryLang(entryLang === 'zh' ? 'en' : 'zh');
+  }
+
 // Theme persistence shared across all language apps
 (function() {
   const themeKey = 'dictation-theme-global';
@@ -85,6 +125,13 @@
     applyTheme(current === 'dark' ? 'light' : 'dark');
   });
 })();
+
+// 首页语言切换
+applyEntryLang(entryLang);
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('#btn-entry-lang');
+  if (btn) toggleEntryLang();
+});
 </script>
 </body>
 </html>
