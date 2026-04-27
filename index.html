@@ -3,40 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dictation — 英语听写练习</title>
+<title>Dictation — 听写练习</title>
 <link rel="stylesheet" href="style.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WTMR4TYK5J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-WTMR4TYK5J');
+</script>
 </head>
 <body>
-<div id="app">
-  <header class="app-header">
-    <div class="header-brand" onclick="setPage('home')">
+<div id="app" class="entry-app">
+  <header class="entry-header">
+    <div class="entry-brand">
       <div class="brand-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
       </div>
       <span class="brand-text">Dictation</span>
     </div>
-    <div class="header-actions">
-      <nav class="nav-tabs" id="nav-tabs" style="display:none">
-        <button data-page="home">我的听写</button>
-        <button data-page="library">资料库</button>
-        <button data-page="drill">专项训练</button>
-        <button data-page="help">帮助</button>
-      </nav>
-      <button id="theme-toggle" class="theme-btn" title="切换明暗模式" aria-label="切换主题">
-        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
-      </button>
-    </div>
+    <button id="theme-toggle" class="theme-btn" title="切换明暗模式" aria-label="切换主题">
+      <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+      <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+    </button>
   </header>
 
-  <main id="main"></main>
+  <main class="entry-main">
+    <h1 class="entry-title">听写练习</h1>
+    <p class="entry-subtitle">选择语言，开始听写</p>
 
-  <footer style="text-align:center;padding:24px 16px;font-size:13px;color:var(--text-muted, #999)">
-    联系作者：<a href="mailto:yesen@comdosoft.com" style="color:var(--primary, #4a90d9);text-decoration:none">yesen@comdosoft.com</a>
+    <div class="lang-grid">
+      <a href="en/index.html" class="lang-card">
+        <span class="lang-flag"><svg viewBox="0 0 24 18" width="36" height="27"><rect width="24" height="18" fill="#fff"/><rect width="24" height="1.2" y="0" fill="#B22234"/><rect width="24" height="1.2" y="2.4" fill="#B22234"/><rect width="24" height="1.2" y="4.8" fill="#B22234"/><rect width="24" height="1.2" y="7.2" fill="#B22234"/><rect width="24" height="1.2" y="9.6" fill="#B22234"/><rect width="24" height="1.2" y="12" fill="#B22234"/><rect width="24" height="1.2" y="14.4" fill="#B22234"/><rect width="24" height="1.2" y="16.8" fill="#B22234"/><rect width="10.2" height="9" fill="#3C3B6E"/><g fill="#fff" transform="translate(0.5,0.4)"><circle cx="1" cy="1" r="0.25"/><circle cx="3" cy="1" r="0.25"/><circle cx="5" cy="1" r="0.25"/><circle cx="7" cy="1" r="0.25"/><circle cx="9" cy="1" r="0.25"/><circle cx="2" cy="2.4" r="0.25"/><circle cx="4" cy="2.4" r="0.25"/><circle cx="6" cy="2.4" r="0.25"/><circle cx="8" cy="2.4" r="0.25"/><circle cx="1" cy="3.8" r="0.25"/><circle cx="3" cy="3.8" r="0.25"/><circle cx="5" cy="3.8" r="0.25"/><circle cx="7" cy="3.8" r="0.25"/><circle cx="9" cy="3.8" r="0.25"/><circle cx="2" cy="5.2" r="0.25"/><circle cx="4" cy="5.2" r="0.25"/><circle cx="6" cy="5.2" r="0.25"/><circle cx="8" cy="5.2" r="0.25"/><circle cx="1" cy="6.6" r="0.25"/><circle cx="3" cy="6.6" r="0.25"/><circle cx="5" cy="6.6" r="0.25"/><circle cx="7" cy="6.6" r="0.25"/><circle cx="9" cy="6.6" r="0.25"/><circle cx="2" cy="8" r="0.25"/><circle cx="4" cy="8" r="0.25"/><circle cx="6" cy="8" r="0.25"/><circle cx="8" cy="8" r="0.25"/></g></svg></span>
+        <span class="lang-name">English</span>
+        <span class="lang-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+      <a href="zh/index.html" class="lang-card">
+        <span class="lang-flag"><svg viewBox="0 0 24 18" width="36" height="27"><rect width="24" height="18" fill="#DE2910"/><g fill="#FFDE00"><polygon points="3.2,2.2 3.6,3.4 4.8,3.4 3.8,4.1 4.2,5.3 3.2,4.5 2.2,5.3 2.6,4.1 1.6,3.4 2.8,3.4"/><polygon points="7.5,1 7.7,1.6 8.3,1.6 7.8,2 8,2.6 7.5,2.2 7,2.6 7.2,2 6.7,1.6 7.3,1.6" transform="rotate(-23,7.5,1.8)"/><polygon points="9,3.2 9.2,3.8 9.8,3.8 9.3,4.2 9.5,4.8 9,4.4 8.5,4.8 8.7,4.2 8.2,3.8 8.8,3.8" transform="rotate(-46,9,4)"/><polygon points="8.5,6 8.7,6.6 9.3,6.6 8.8,7 9,7.6 8.5,7.2 8,7.6 8.2,7 7.7,6.6 8.3,6.6" transform="rotate(-69,8.5,6.8)"/><polygon points="6.5,7 6.7,7.6 7.3,7.6 6.8,8 7,8.6 6.5,8.2 6,8.6 6.2,8 5.7,7.6 6.3,7.6" transform="rotate(-92,6.5,7.8)"/></g></svg></span>
+        <span class="lang-name">中文</span>
+        <span class="lang-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+        </span>
+      </a>
+    </div>
+
+    <p class="entry-more">更多语言即将推出……</p>
+  </main>
+
+  <footer class="entry-footer">
+    <p><a href="mailto:yesen@comdosoft.com">yesen@comdosoft.com</a></p>
+    <p><a href="https://gitee.com/yesen77/english-dictation" target="_blank">https://gitee.com/yesen77/english-dictation</a></p>
+    <p><a href="https://github.com/yesen19771004/simpledictation" target="_blank">https://github.com/yesen19771004/simpledictation</a></p>
   </footer>
 </div>
 
-<script src="preset-lessons.js"></script>
-<script src="app.js"></script>
+<script>
+// Theme persistence shared across all language apps
+(function() {
+  const themeKey = 'dictation-theme-global';
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem(themeKey, theme); } catch {}
+  }
+  function initTheme() {
+    let theme = 'light';
+    try {
+      const saved = localStorage.getItem(themeKey);
+      if (saved) theme = saved;
+      else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
+    } catch {}
+    applyTheme(theme);
+  }
+  initTheme();
+  document.addEventListener('click', (e) => {
+    const toggle = e.target.closest('#theme-toggle');
+    if (!toggle) return;
+    const current = document.documentElement.getAttribute('data-theme') || 'light';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+})();
+</script>
 </body>
 </html>

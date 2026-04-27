@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dictation — 中文听写</title>
+<link rel="stylesheet" href="style.css">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-WTMR4TYK5J"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-WTMR4TYK5J');
+</script>
+</head>
+<body>
+<div id="app">
+  <header class="app-header">
+    <div class="header-brand" onclick="location.href='../index.html'">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+      </div>
+      <span class="brand-text">Dictation</span>
+    </div>
+    <div class="header-actions">
+      <nav class="nav-tabs" id="nav-tabs" style="display:none">
+        <button data-page="home"></button>
+        <button data-page="library"></button>
+        <button data-page="drill"></button>
+        <button data-page="help"></button>
+      </nav>
+      <button id="btn-display-lang" class="lang-switch" title="切换显示语言" aria-label="显示语言" style="display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:8px;font-size:13px;font-weight:500;color:var(--text-secondary);text-decoration:none;transition:background .15s;cursor:pointer;margin-right:4px;border:1px solid var(--border);background:var(--bg-elevated)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>中文</button>
+      <button id="theme-toggle" class="theme-btn" title="切换明暗模式" aria-label="切换主题">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <footer style="text-align:center;padding:24px 16px;font-size:13px;color:var(--text-muted, #999);line-height:2">
+    <a href="mailto:yesen@comdosoft.com" style="color:var(--primary, #4a90d9);text-decoration:none">yesen@comdosoft.com</a><br>
+    <a href="https://gitee.com/yesen77/english-dictation" target="_blank" style="color:var(--primary, #4a90d9);text-decoration:none">https://gitee.com/yesen77/english-dictation</a><br>
+    <a href="https://github.com/yesen19771004/simpledictation" target="_blank" style="color:var(--primary, #4a90d9);text-decoration:none">https://github.com/yesen19771004/simpledictation</a>
+  </footer>
+</div>
+
+<script src="preset-lessons.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

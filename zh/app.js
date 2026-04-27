@@ -1,6 +1,408 @@
-const STORAGE_KEY = 'dictation-app-v1';
-const PRESET_KEY = 'dictation-preset-imported-v1';
-const LIBRARIES_KEY = 'dictation-libraries-v1';
+const LANG_PREFIX = 'zh_';
+const STORAGE_KEY = LANG_PREFIX + 'dictation-app-v1';
+const PRESET_KEY = LANG_PREFIX + 'dictation-preset-imported-v1';
+const LIBRARIES_KEY = LANG_PREFIX + 'dictation-libraries-v1';
+
+// ===== 界面语言（i18n）=====
+const DISPLAY_LANG_KEY = LANG_PREFIX + 'display-lang';
+let displayLang = (() => { try { return localStorage.getItem(DISPLAY_LANG_KEY) || 'zh'; } catch { return 'zh'; } })();
+
+const LANG_STRINGS = {
+  zh: {
+    home: '我的听写',
+    library: '资料库',
+    drill: '专项训练',
+    help: '帮助',
+    newDictation: '新建听写',
+    emptyTitle: '开始你的第一次听写',
+    emptyDesc: '从资料库选择适合你的课程，或者粘贴自己的中文文本开始练习。',
+    browseLibrary: '浏览资料库',
+    importFromLibrary: '从资料库导入',
+    importBackup: '已有备份？可导入历史数据',
+    importMyData: '导入我的数据',
+    myDictations: '我的听写',
+    completed: '已完成',
+    continue: '继续',
+    restart: '重练',
+    delete: '删除',
+    newDictationBtn: '新建听写',
+    myData: '我的数据',
+    myDataDesc: '导出、导入或清空你的听写记录和错误数据。',
+    exportMyData: '导出我的数据',
+    clearData: '清空数据',
+    submitCheck: '提交检查',
+    playPause: '播放/暂停',
+    startInput: '开始输入',
+    inInputField: '在输入框内',
+    showOriginal: '显示原文',
+    originalText: '原文',
+    translation: '翻译',
+    enter: 'Enter',
+    space: 'Space',
+    shift: 'Shift',
+    ctrl: 'Ctrl',
+    createDictation: '新建听写',
+    createDictationDesc: '输入中文原文，系统会自动按句切分，生成听写练习。',
+    titleLabel: '标题',
+    titlePlaceholder: '给这次练习起个名字',
+    textLabel: '中文原文',
+    textPlaceholder: '在此粘贴或输入中文文本……',
+    generateBtn: '生成练习',
+    fullMatch: '全对！进入下一句',
+    correctNofM: (correct, total) => `对了 ${correct}/${total} 个字符，继续补全`,
+    continueFill: '继续补全',
+    pleaseInput: '请输入内容',
+    resultTitle: '练习完成！',
+    resultDesc: '所有句子均已通过，表现不错！',
+    accuracy: '正确率',
+    sentencesCount: '句子数',
+    mistakes: '错误',
+    mistakesRecorded: '错误记录',
+    backToHome: '返回首页',
+    prevSentence: '上一句',
+    nextSentence: '下一句',
+    playing: '播放中…',
+    selectLevel: '选择级别',
+    startFromLibrary: '从资料库开始',
+    tapToStart: '点击开始',
+    clickWordForTrans: '点击单词查看释义',
+    speedLabel: '语速',
+    voiceLabel: '语音',
+    confirmDelete: '确定删除此练习吗？',
+    confirmDeleteDrill: '确定删除此专项训练吗？',
+    confirmClearAll: '确定清空所有数据吗？\n\n这将删除：\n· 所有听写记录\n· 所有错误记录\n· 所有资料库导入映射\n\n此操作不可恢复，请确认已导出备份。',
+    deleted: '已删除',
+    clickSelectBatchDelete: '（点击选中，批量删除）',
+    mistakeCount: n => `出错 ${n} 次`,
+    dataCleared: '数据已清空',
+    importFailed: msg => `导入失败：${msg}`,
+    importSuccess: '导入成功',
+    copied: '已复制',
+    copyFailed: '复制失败',
+    exportDesc: '导出我的听写记录和错题数据',
+    notSupported: '当前浏览器不支持语音播放',
+    voiceNotReady: '语音引擎尚未就绪',
+    libraryImport: '导入资料库',
+    libraryImportDesc: '选择 JSON 格式的资料库文件导入',
+    importFile: '导入',
+    switchLibrary: '切换资料库',
+    defaultLibrary: '默认资料库',
+    deleteLibrary: '删除资料库',
+    deleteLibraryConfirm: '确定删除此资料库吗？删除后不可恢复。',
+    libraryDeleted: '资料库已删除',
+    lessonProgress: '进度',
+    notStarted: '未开始',
+    completedShort: '已完成',
+    drillTitle: '专项训练',
+    drillDesc: '在常规听写练习中，系统会自动记录你听写出错的词汇。积累足够错误记录后，来这里进行专项突破。',
+    goToLibrary: '去资料库',
+    goToLibraryDrill: '去资料库',
+    drillPlaceholder: '暂无错误记录，完成一些听写后再来。',
+    drillGenerate: '生成提示词',
+    drillStart: '开始专项训练',
+    drillRemaining: '个待训练词汇',
+    drillWrongWords: '个出错词汇',
+    drillSelectLevel: '选择难度级别',
+    drillCopyPrompt: '复制提示词',
+    drillYourArticle: '你的文章',
+    drillYourArticlePlaceholder: '将 LLM 生成的文章粘贴到这里……',
+    drillNoMistakes: '暂无错误记录',
+    drillToday: '今天',
+    drillYesterday: '昨天',
+    drillDaysAgo: n => `${n} 天前`,
+    helpTitle: '帮助',
+    helpHowTo: '如何使用',
+    helpStep1: '从资料库选择一篇文章，或输入自己的中文文本创建听写',
+    helpStep2: '播放句子，在输入框中写下你听到的内容',
+    helpStep3: '提交检查，正确的字符自动锁定，错误的变为空格',
+    helpStep4: '补全空格后再次提交，全对自动进入下一句',
+    helpShortcuts: '快捷键',
+    helpEnter: '聚焦到输入框',
+    helpSpace: n => `${n} 播放/暂停`,
+    helpShiftSpace: '在输入框内播放/暂停',
+    helpCtrlEnter: '提交检查',
+    langSwitch: 'English',
+    backToLangs: 'English',
+    language: '语言',
+    voiceMale: '男声',
+    voiceFemale: '女声',
+    yourArticle: '你的文章',
+    generatePrompt: '生成提示词',
+    startPractice: '开始练习',
+    copyPrompt: '复制提示词',
+    selectDifficulty: '选择难度',
+    promptCopied: '提示词已复制到剪贴板',
+    promptCopyFailed: '复制失败，请手动复制',
+    score: '得分',
+    correctCount: '正确数',
+    totalCount: '总数',
+    imported: '资料库',
+    cancel: '取消',
+    noSentences: '未能识别到句子',
+    prevTitle: '上一句',
+    nextTitle: '下一句',
+    backTitle: '返回',
+    playTitle: '播放',
+    skipBtn: '跳过',
+    loading: '加载中...',
+    fullInputPlaceholder: '听完后在此输入完整句子...',
+    listenFullSentence: '请听写整句',
+    confirmSkip: '确定跳过本句吗？进度将标记为跳过。',
+    translateFailed: '翻译失败',
+    noTranslation: '（暂无翻译）',
+    fullyComplete: '全部完成',
+    practiceComplete: '练习完成',
+    completedLabel: '已完成',
+    totalSentences: '总句数',
+    completionRate: '完成率',
+    practiceAgain: '再次练习',
+    importLibrary: '导入资料库',
+    libraryLabel: '资料库：',
+    allLevels: '全部',
+    noData: '该级别暂无数据',
+    startPractice: '开始练习',
+    resetBtn: '重置',
+    noWordsToTrain: '暂无待训练词汇',
+    wordsToTrain: '个待训练词汇',
+    selectDifficulty: '选择文章难度',
+    pasteArticle: '粘贴 LLM 返回的文章',
+    pasteArticlePlaceholder: '将大语言模型生成的文章粘贴到这里...',
+    startDrill: '开始专项训练',
+    selectAll: '全选',
+    deselectAll: '取消全选',
+    deleteSelected: '删除选中',
+    exitTitle: '退出',
+    drillOnlyOnce: '仅一次机会',
+    drillComplete: '专项训练完成',
+    correctWords: '正确词',
+    wrongWords: '错误词',
+    correctRate: '正确率',
+    drillAgain: '再来一轮',
+    sentenceProgress: (idx, total, pct) => `第 ${idx}/${total} 句 · 已完成 ${pct}%`,
+    drillProgress: (idx, total) => `第 ${idx}/${total} 句 · 仅一次机会`,
+    countLessons: n => `${n} 篇`,
+    progressPercent: n => `进度 ${n}%`,
+    totalSentencesShort: n => `共 ${n} 句`,
+    selectedCount: n => `已选 ${n} 个`,
+    confirmDeleteSelected: n => `确定删除选中的 ${n} 个错误记录吗？`,
+    confirmDeleteLibrary: name => `确定删除资料库 "${name}" 吗？相关的练习映射将被清理。`,
+    drillResultDesc: pct => `薄弱词汇已更新，正确率 ${pct}%`,
+    promptLabel: n => `LLM 提示词（包含 ${n} 个错词）`,
+    promptLabelTruncated: (n, total) => `LLM 提示词（已从 ${total} 个错词中筛选出 ${n} 个）`,
+    currentLibrary: (name, count) => `当前：${name} · 共 ${count} 篇`,
+  },
+  en: {
+    home: 'My Dictations',
+    library: 'Library',
+    drill: 'Drill',
+    help: 'Help',
+    newDictation: 'New Dictation',
+    emptyTitle: 'Start Your First Dictation',
+    emptyDesc: 'Pick a lesson from the library, or paste your own Chinese text to practice.',
+    browseLibrary: 'Browse Library',
+    importFromLibrary: 'Import from Library',
+    importBackup: 'Have a backup? Import your data',
+    importMyData: 'Import My Data',
+    myDictations: 'My Dictations',
+    completed: 'Completed',
+    continue: 'Continue',
+    restart: 'Restart',
+    delete: 'Delete',
+    newDictationBtn: 'New Dictation',
+    myData: 'My Data',
+    myDataDesc: 'Export, import or clear your dictation records and mistake data.',
+    exportMyData: 'Export My Data',
+    clearData: 'Clear Data',
+    submitCheck: 'Submit & Check',
+    playPause: 'Play/Pause',
+    startInput: 'Start typing',
+    inInputField: 'in input field',
+    showOriginal: 'Show Original',
+    originalText: 'Original',
+    translation: 'Translation',
+    enter: 'Enter',
+    space: 'Space',
+    shift: 'Shift',
+    ctrl: 'Ctrl',
+    createDictation: 'New Dictation',
+    createDictationDesc: 'Paste Chinese text, the system will split it into sentences automatically.',
+    titleLabel: 'Title',
+    titlePlaceholder: 'Name this exercise',
+    textLabel: 'Chinese Text',
+    textPlaceholder: 'Paste or type Chinese text here...',
+    generateBtn: 'Generate',
+    fullMatch: 'All correct! Moving to next sentence.',
+    correctNofM: (correct, total) => `${correct}/${total} correct, fill in the rest`,
+    continueFill: 'fill in the rest',
+    pleaseInput: 'Please enter some text',
+    resultTitle: 'Practice Complete!',
+    resultDesc: 'All sentences passed. Great job!',
+    accuracy: 'Accuracy',
+    sentencesCount: 'Sentences',
+    mistakes: 'Mistakes',
+    mistakesRecorded: 'Mistakes',
+    backToHome: 'Back to Home',
+    prevSentence: 'Previous',
+    nextSentence: 'Next',
+    playing: 'Playing...',
+    selectLevel: 'Select Level',
+    startFromLibrary: 'Start from Library',
+    tapToStart: 'Tap to start',
+    clickWordForTrans: 'Click a word for translation',
+    speedLabel: 'Speed',
+    voiceLabel: 'Voice',
+    confirmDelete: 'Delete this exercise?',
+    confirmDeleteDrill: 'Delete this drill?',
+    confirmClearAll: 'Clear all data?\n\nThis will delete:\n· All dictation records\n· All mistake records\n· All library import mappings\n\nThis cannot be undone. Please export a backup first.',
+    deleted: 'Deleted',
+    clickSelectBatchDelete: '(Click to select, batch delete)',
+    mistakeCount: n => `Wrong ${n} times`,
+    dataCleared: 'Data cleared',
+    importFailed: msg => `Import failed: ${msg}`,
+    importSuccess: 'Import successful',
+    copied: 'Copied',
+    copyFailed: 'Copy failed',
+    exportDesc: 'Export my dictation records and mistake data',
+    notSupported: 'Speech synthesis not supported in this browser',
+    voiceNotReady: 'Voice engine not ready yet',
+    libraryImport: 'Import Library',
+    libraryImportDesc: 'Select a JSON library file to import',
+    importFile: 'Import',
+    switchLibrary: 'Switch Library',
+    defaultLibrary: 'Default Library',
+    deleteLibrary: 'Delete Library',
+    deleteLibraryConfirm: 'Delete this library? This cannot be undone.',
+    libraryDeleted: 'Library deleted',
+    lessonProgress: 'Progress',
+    notStarted: 'Not started',
+    completedShort: 'Done',
+    drillTitle: 'Drill',
+    drillDesc: 'The system tracks words you get wrong during dictation. When you have enough, come here for targeted practice.',
+    goToLibrary: 'Go to Library',
+    goToLibraryDrill: 'Go to Library',
+    drillPlaceholder: 'No mistakes recorded yet. Complete some dictations first.',
+    drillGenerate: 'Generate Prompt',
+    drillStart: 'Start Drill',
+    drillRemaining: 'words to train',
+    drillWrongWords: 'wrong words',
+    drillSelectLevel: 'Select Difficulty',
+    drillCopyPrompt: 'Copy Prompt',
+    drillYourArticle: 'Your Article',
+    drillYourArticlePlaceholder: 'Paste the article generated by LLM here...',
+    drillNoMistakes: 'No mistakes recorded',
+    drillToday: 'Today',
+    drillYesterday: 'Yesterday',
+    drillDaysAgo: n => `${n} days ago`,
+    helpTitle: 'Help',
+    helpHowTo: 'How to Use',
+    helpStep1: 'Pick a lesson from the library or paste your own Chinese text',
+    helpStep2: 'Listen to the sentence and type what you hear',
+    helpStep3: 'Submit to check, correct characters lock, wrong ones become blanks',
+    helpStep4: 'Fill in the blanks and re-submit until all correct',
+    helpShortcuts: 'Keyboard Shortcuts',
+    helpEnter: 'Focus input field',
+    helpSpace: n => `${n} Play/Pause`,
+    helpShiftSpace: 'Play/Pause while in input field',
+    helpCtrlEnter: 'Submit and check',
+    langSwitch: '中文',
+    backToLangs: '中文',
+    language: 'Language',
+    voiceMale: 'Male',
+    voiceFemale: 'Female',
+    yourArticle: 'Your Article',
+    generatePrompt: 'Generate Prompt',
+    startPractice: 'Start Practice',
+    copyPrompt: 'Copy Prompt',
+    selectDifficulty: 'Select Difficulty',
+    promptCopied: 'Prompt copied to clipboard',
+    promptCopyFailed: 'Copy failed, please copy manually',
+    score: 'Score',
+    correctCount: 'Correct',
+    totalCount: 'Total',
+    imported: 'Library',
+    cancel: 'Cancel',
+    noSentences: 'No sentences found',
+    prevTitle: 'Previous',
+    nextTitle: 'Next',
+    backTitle: 'Back',
+    playTitle: 'Play',
+    skipBtn: 'Skip',
+    loading: 'Loading...',
+    fullInputPlaceholder: 'Type the full sentence here after listening...',
+    listenFullSentence: 'Write the full sentence',
+    confirmSkip: 'Skip this sentence? Progress will be marked as skipped.',
+    translateFailed: 'Translation failed',
+    noTranslation: '(No translation)',
+    fullyComplete: 'All Complete',
+    practiceComplete: 'Practice Complete',
+    completedLabel: 'Completed',
+    totalSentences: 'Total Sentences',
+    completionRate: 'Completion Rate',
+    practiceAgain: 'Practice Again',
+    importLibrary: 'Import Library',
+    libraryLabel: 'Library:',
+    allLevels: 'All',
+    noData: 'No data for this level',
+    startPractice: 'Start',
+    resetBtn: 'Reset',
+    noWordsToTrain: 'No words to train',
+    wordsToTrain: 'words to train',
+    selectDifficulty: 'Select Difficulty',
+    pasteArticle: 'Paste LLM Article',
+    pasteArticlePlaceholder: 'Paste the article generated by LLM here...',
+    startDrill: 'Start Drill',
+    selectAll: 'Select All',
+    deselectAll: 'Deselect All',
+    deleteSelected: 'Delete Selected',
+    exitTitle: 'Exit',
+    drillOnlyOnce: 'One chance only',
+    drillComplete: 'Drill Complete',
+    correctWords: 'Correct',
+    wrongWords: 'Wrong',
+    correctRate: 'Accuracy',
+    drillAgain: 'Drill Again',
+    sentenceProgress: (idx, total, pct) => `Sentence ${idx}/${total} · ${pct}% done`,
+    drillProgress: (idx, total) => `Sentence ${idx}/${total} · One chance only`,
+    countLessons: n => `${n} lessons`,
+    progressPercent: n => `Progress ${n}%`,
+    totalSentencesShort: n => `${n} sentences`,
+    selectedCount: n => `${n} selected`,
+    confirmDeleteSelected: n => `Delete ${n} selected mistake records?`,
+    confirmDeleteLibrary: name => `Delete library "${name}"? Related exercise mappings will be removed.`,
+    drillResultDesc: pct => `Weak words updated, accuracy ${pct}%`,
+    promptLabel: n => `LLM Prompt (${n} words)`,
+    promptLabelTruncated: (n, total) => `LLM Prompt (${n} of ${total} words selected)`,
+    currentLibrary: (name, count) => `Current: ${name} · ${count} lessons`,
+  }
+};
+
+function t(key, ...args) {
+  const s = LANG_STRINGS[displayLang][key];
+  if (typeof s === 'function') return s(...args);
+  return s !== undefined ? s : key;
+}
+
+function setDisplayLang(lang) {
+  displayLang = lang;
+  try { localStorage.setItem(DISPLAY_LANG_KEY, lang); } catch {}
+  updateUILabels();
+  renderMain();
+}
+
+function updateUILabels() {
+  // 更新导航标签
+  const nav = document.getElementById('nav-tabs');
+  if (nav) {
+    const map = { home: 'home', library: 'library', drill: 'drill', help: 'help' };
+    nav.querySelectorAll('button').forEach(b => {
+      const key = map[b.dataset.page];
+      if (key) b.textContent = t(key);
+    });
+  }
+  // 更新显示语言按钮
+  const btn = document.getElementById('btn-display-lang');
+  if (btn) btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' + t('langSwitch');
+}
 
 // PRESET_LESSONS 定义在 preset-lessons.js 中，按 CEFR 级别组织
 
@@ -46,16 +448,16 @@ function saveLibraries(data) {
 function getActiveLibrary() {
   const data = loadLibraries();
   if (data.activeLibraryId === 'default') {
-    return { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS };
+    return { id: 'default', name: t('defaultLibrary'), type: 'default', lessons: PRESET_LESSONS };
   }
   const lib = data.libraries.find(l => l.id === data.activeLibraryId);
   if (lib) return { ...lib, type: 'imported' };
-  return { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS };
+  return { id: 'default', name: t('defaultLibrary'), type: 'default', lessons: PRESET_LESSONS };
 }
 function getAllLibraries() {
   const data = loadLibraries();
   return [
-    { id: 'default', name: '默认资料库', type: 'default', lessons: PRESET_LESSONS },
+    { id: 'default', name: t('defaultLibrary'), type: 'default', lessons: PRESET_LESSONS },
     ...data.libraries.map(l => ({ ...l, type: 'imported' }))
   ];
 }
@@ -71,7 +473,7 @@ function generateId() { return Date.now().toString(36) + Math.random().toString(
 // ============================================================
 // Mistakes tracking
 // ============================================================
-const MISTAKES_KEY = 'dictation-mistakes-v1';
+const MISTAKES_KEY = LANG_PREFIX + 'dictation-mistakes-v1';
 
 function loadMistakes() {
   try { return JSON.parse(localStorage.getItem(MISTAKES_KEY)) || {}; } catch { return {}; }
@@ -159,7 +561,7 @@ async function importMyData(file) {
     showToast('数据文件格式不正确');
     return;
   }
-  const mode = confirm('点击「确定」覆盖现有数据，点击「取消」合并导入。');
+  const mode = confirm(t('importMode'));
   if (mode) {
     saveSessions(data.sessions);
     saveMistakes(data.mistakes);
@@ -221,237 +623,70 @@ const ICONS = {
 };
 
 function splitSentences(text) {
-  // 常见缩写（点号不是句末标点）
-  const abbrs = [
-    'Mr', 'Mrs', 'Ms', 'Dr', 'Prof', 'Sr', 'Jr', 'St', 'Mt',
-    'a.m', 'p.m', 'vs', 'etc', 'e.g', 'i.e',
-    'Ph.D', 'M.D', 'B.A', 'M.A', 'B.S', 'M.S'
-  ];
-  // 按长度降序
-  abbrs.sort((a, b) => b.length - a.length);
+  // 中文句末标点：。！？； 也支持英文标点：.!?
+  const raw = text.split(/(?<=[。！？；!?])\s*/).filter(s => s.trim().length > 0);
 
-  let s = text;
-  // 保护缩写中的点号
-  for (const a of abbrs) {
-    const escaped = a.replace(/\./g, '\\.');
-    const re = new RegExp('\\b' + escaped + '\\.(?=\\s|[.,;!?\\"\'\\]\\}\\)]|$)', 'gi');
-    if (a.includes('.')) {
-      // 多段缩写（如 a.m）：内部点号替换为 __DOT__，保留结尾点号用于断句
-      s = s.replace(re, a.replace(/\./g, '__DOT__') + '.');
-    } else {
-      // 简单缩写（如 Mr）：点号全部替换为 __DOT__（完全保护）
-      s = s.replace(re, a + '__DOT__');
-    }
-  }
-  // 通用规则：连续单字母缩写（如 R.A.F., U.S., a.m., e.g.）
-  // 匹配 "A.B."、"A.B.C." 等模式，保留最后一个点号用于断句
-  s = s.replace(/\b([A-Za-z]\.(?:[A-Za-z]\.)+)/g, (match) => {
-    // match 如 "U.S." 或 "R.A.F."
-    const withoutLastDot = match.slice(0, -1);
-    return withoutLastDot.replace(/\./g, '__DOT__') + '.';
-  });
-
-  // 按句末标点分割：. ! ? 后跟空格 + 大写字母或引号或括号
-  // 这种模式能避免在缩写点号处误切
-  const parts = [];
-  let last = 0;
-  const re = /(?<=[.!?])\s+(?=[A-Z"'[{(])/g;
-  let match;
-  while ((match = re.exec(s)) !== null) {
-    parts.push(s.slice(last, match.index + 1));
-    last = match.index + match[0].length;
-  }
-  if (last < s.length) {
-    parts.push(s.slice(last));
-  }
-  // 如果主逻辑没切分（没有大写字母开头的句子），回退为整段
-  // 避免在缩写点号处盲目分割
-  if (parts.length <= 1) {
-    parts.length = 0;
-    parts.push(s);
+  if (raw.length <= 1) {
+    return [text.trim()];
   }
 
-  // 恢复点号
-  const restored = parts.map(p => p.replace(/__DOT__/g, '.').trim()).filter(p => p.length > 0);
-
-  // 合并孤立小片段（如引语后面的 'she said.' 合并到前一句）
+  // 合并过短片段（比如引号内的句号导致的分割）
   const result = [];
-  for (const p of restored) {
+  for (const p of raw) {
+    const t = p.trim();
+    if (!t) continue;
     if (result.length > 0) {
-      const last = result[result.length - 1];
-      const wordCount = p.split(/\s+/).length;
-      if (wordCount <= 3 && /['"]$/.test(last) && !/^['"]/.test(p)) {
-        result[result.length - 1] = last + ' ' + p;
+      const lastP = result[result.length - 1];
+      if (t.length < 10 && /["'']$/.test(lastP)) {
+        result[result.length - 1] = lastP + t;
         continue;
       }
     }
-    result.push(p);
+    result.push(t);
   }
-  return result;
+  return result.length > 0 ? result : [text.trim()];
 }
 
-const NUM_WORDS = {
-  'zero': '0', 'o': '0', 'oh': '0',
-  'one': '1', 'two': '2', 'three': '3', 'four': '4',
-  'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
-  'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
-  'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
-  'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'thirty': '30',
-  'forty': '40', 'fifty': '50', 'sixty': '60', 'seventy': '70',
-  'eighty': '80', 'ninety': '90',
-  'hundred': '100', 'thousand': '1000'
+// 中文数字映射
+const CN_NUM_WORDS = {
+  '零': '0', '〇': '0', '○': '0',
+  '一': '1', '二': '2', '三': '3', '四': '4',
+  '五': '5', '六': '6', '七': '7', '八': '8', '九': '9',
+  '十': '10', '百': '100', '千': '1000'
 };
 
-// 数字词到数值的映射（用于短语解析）
-const NUM_VALS = Object.fromEntries(
-  Object.entries(NUM_WORDS).map(([k, v]) => [k, parseInt(v, 10)])
-);
-
 function normalizeWord(word) {
-  let w = word.trim().toLowerCase().replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '');
-  // 英文数字 ↔ 阿拉伯数字 归一化，如 "five" 与 "5" 视为相等
-  if (NUM_WORDS[w] !== undefined) return NUM_WORDS[w];
+  let w = word.trim();
+  if (CN_NUM_WORDS[w] !== undefined) return CN_NUM_WORDS[w];
+  if (/^\d+$/.test(w)) return w;
+  // 中文：不做标点剥离，原样比对（用户漏写标点会留空待补）
   return w;
 }
 
 // 尝试从 tokens[start] 开始解析一个数字短语（如 "nineteen eighty-five" → "1985"）
 // 返回 { value: string, consumed: number } 或 null
+// 中文数字短语解析（简化版本）
 function tryParseNumberPhrase(tokens, start) {
-  // 收集连续的数字词/修饰词
-  const raw = [];
-  let i = start;
-  while (i < tokens.length) {
-    const w = tokens[i].toLowerCase();
-    if (w === 'double' || w === 'triple') {
-      raw.push(w);
-      i++;
-    } else if (w in NUM_VALS || /^\d+$/.test(w)) {
-      raw.push(w);
-      i++;
-    } else {
-      break;
-    }
-  }
-  if (raw.length === 0) return null;
-
-  // 展开 double / triple
-  const expanded = [];
-  for (let j = 0; j < raw.length; j++) {
-    if (raw[j] === 'double') {
-      // "double X" → X X（下一个词重复两次）
-      if (j + 1 < raw.length) {
-        expanded.push(raw[j + 1]);
-        expanded.push(raw[j + 1]);
-        j++;
-      } else return null;
-    } else if (raw[j] === 'triple') {
-      // "triple X" → X X X（下一个词重复三次）
-      if (j + 1 < raw.length) {
-        expanded.push(raw[j + 1]);
-        expanded.push(raw[j + 1]);
-        expanded.push(raw[j + 1]);
-        j++;
-      } else return null;
-    } else {
-      expanded.push(raw[j]);
-    }
-  }
-
-  // 全部映射为数值
-  const vals = expanded.map(w => {
-    const lc = w.toLowerCase();
-    if (lc in NUM_VALS) return NUM_VALS[lc];
-    if (/^\d+$/.test(w)) return parseInt(w, 10);
-    return -1;
-  });
-  if (vals.some(v => v < 0)) return null;
-
-  // 处理 hundred (100) 和 thousand (1000) 的乘法
-  // e.g. [2, 100, 1] → 2*100 + 1 = 201
-  // e.g. [2, 1000] → 2000
-  // e.g. [19, 100] → 1900
-  const processed = [];
-  let m = 0;
-  while (m < vals.length) {
-    if (vals[m] === 100 || vals[m] === 1000) {
-      if (processed.length > 0) {
-        // 前一个值 × hundred/thousand
-        processed[processed.length - 1] *= vals[m];
-      } else {
-        // 没有前值，单独使用（如 "thousand" 单独出现）
-        processed.push(vals[m]);
-      }
-      m++;
-    } else if (m + 1 < vals.length && (vals[m + 1] === 100 || vals[m + 1] === 1000)) {
-      // 当前值后面紧跟着 hundred/thousand，先跳过，等上面逻辑处理
-      processed.push(vals[m]);
-      m++;
-    } else {
-      processed.push(vals[m]);
-      m++;
-    }
-  }
-
-  // 组合策略：
-  // 1. 所有值 < 10 → 逐位拼接（电话号码/房间号模式）
-  // 2. 包含 hundred/thousand 乘法结果（值 >= 100）→ 全部相加（数量模式）
-  // 3. 其他 → 数值拼接（年份模式）
-  const allSingle = processed.every(v => v < 10);
-  if (allSingle) {
-    return { value: processed.join(''), consumed: raw.length };
-  }
-
-  // 如果任何值 >= 100（乘法结果），全部相加
-  // 如 [2000, 1] → 2001, [1900, 85] → 1985
-  if (processed.some(v => v >= 100)) {
-    const total = processed.reduce((a, b) => a + b, 0);
-    return { value: total.toString(), consumed: raw.length };
-  }
-
-  // 数值拼接：两位数与个位数组合
-  let result = '';
-  let k = 0;
-  while (k < processed.length) {
-    if (processed[k] >= 10 && k + 1 < processed.length && processed[k + 1] < 10) {
-      if (processed[k] >= 20 && processed[k] <= 90 && processed[k] % 10 === 0) {
-        // 整十数词 (twenty~ninety) + 个位数 → 算术加法
-        // 如 eighty(80) + five(5) = 85
-        result += (processed[k] + processed[k + 1]).toString();
-      } else {
-        // 其他两位数 (ten~nineteen) + 个位数 → 字符串拼接
-        // 如 nineteen(19) + o(0) = '190'
-        result += processed[k].toString() + processed[k + 1].toString();
-      }
-      k += 2;
-    } else {
-      result += processed[k].toString();
-      k++;
-    }
-  }
-  return { value: result, consumed: raw.length };
+  // 对于中文听写，数字处理简化：单字符数字映射由 normalizeWord 处理
+  // 这里不做复杂短语解析，直接返回 null 让每个字符单独处理
+  return null;
 }
 
-// 将 tokens 中的数字短语合并为数字字符串
 function normalizeTokensWithMap(tokens) {
-  const result = [];
-  const map = [];
-  let i = 0;
-  while (i < tokens.length) {
-    const parsed = tryParseNumberPhrase(tokens, i);
-    if (parsed) {
-      result.push(parsed.value);
-      map.push([i, i + parsed.consumed - 1]);
-      i += parsed.consumed;
-    } else {
-      result.push(tokens[i]);
-      map.push([i, i]);
-      i++;
-    }
-  }
-  return { tokens: result, map };
+  return { tokens, map: tokens.map((_, i) => [i, i]) };
 }
+
 function stripPunctuation(word) {
-  return word.trim().replace(/^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$/g, '');
+  // 保留中英文和数字，仅剥离首尾标点
+  return word.trim().replace(/^[^\w\u4e00-\u9fff]+|[^\w\u4e00-\u9fff]+$/g, '');
+}
+
+// 中文分词：按字符分割（保留标点）
+function tokenizeChinese(text) {
+  if (!text) return [];
+  // 使用 Array.from 正确处理 Unicode 代理对
+  const chars = Array.from(text.trim());
+  return chars.filter(c => c.trim().length > 0);
 }
 
 function showToast(msg) {
@@ -501,12 +736,12 @@ document.addEventListener('keydown', (e) => {
 // Theme
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
-  try { localStorage.setItem('dictation-theme', theme); } catch {}
+  try { localStorage.setItem(LANG_PREFIX + 'dictation-theme', theme); } catch {}
 }
 function initTheme() {
   let theme = 'light';
   try {
-    const saved = localStorage.getItem('dictation-theme');
+    const saved = localStorage.getItem(LANG_PREFIX + 'dictation-theme');
     if (saved) theme = saved;
     else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) theme = 'dark';
   } catch {}
@@ -520,6 +755,17 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   const btn = document.getElementById('theme-toggle');
   if (btn) btn.addEventListener('click', toggleTheme);
+
+  // 显示语言切换
+  const langBtn = document.getElementById('btn-display-lang');
+  if (langBtn) {
+    langBtn.addEventListener('click', () => {
+      setDisplayLang(displayLang === 'zh' ? 'en' : 'zh');
+    });
+  }
+
+  // 初始化导航标签
+  updateUILabels();
 });
 
 function setPage(page) {
@@ -531,7 +777,7 @@ function setPage(page) {
       const progress = session.progress || initProgress(session.sentences.length);
       const idx = progress.currentSentenceIdx || 0;
       if (idx < session.sentences.length) {
-        const words = session.sentences[idx].trim().split(/\s+/);
+        const words = tokenizeChinese(session.sentences[idx]);
         saveCurrentDraft(progress, idx, words, card);
         updateSessionProgress(activeSessionId, progress);
       }
@@ -574,17 +820,17 @@ function renderHome(container) {
         <div class="empty-state-icon">
           <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v14a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
         </div>
-        <h3>开始你的第一次听写</h3>
-        <p>从资料库选择适合你的课程，或者粘贴自己的英文文本开始练习。</p>
+        <h3>${t('emptyTitle')}</h3>
+        <p>${t('emptyDesc')}</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}浏览资料库</button>
-          <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}新建听写</button>
-          <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}${t('browseLibrary')}</button>
+          <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.pencil}${t('newDictationBtn')}</button>
+          <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}${t('importFromLibrary')}</button>
         </div>
         <div style="margin-top:20px;padding-top:20px;border-top:1.5px solid var(--border)">
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">已有备份？可导入历史数据</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:10px">${t('importBackup')}</div>
           <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-            <button class="btn btn-secondary" id="btn-import-data-empty">${ICONS.upload}导入我的数据</button>
+            <button class="btn btn-secondary" id="btn-import-data-empty">${ICONS.upload}${t('importMyData')}</button>
             <input type="file" id="data-file-input-empty" accept=".json" style="display:none">
           </div>
         </div>
@@ -605,11 +851,11 @@ function renderHome(container) {
     function sessionItemHtml(s) {
       return `<div class="session-item">
         <div class="session-info">
-          <div class="session-title">${escapeHtml(s.title || '未命名练习')}<span style="font-size:12px;color:var(--text-muted);font-weight:400;margin-left:6px">${s.libraryName && s.level ? escapeHtml(s.libraryName + ' · ' + s.level) : ''}</span></div>
+          <div class="session-title">${escapeHtml(s.title || t('newDictation'))}<span style="font-size:12px;color:var(--text-muted);font-weight:400;margin-left:6px">${s.libraryName && s.level ? escapeHtml(s.libraryName + ' · ' + s.level) : ''}</span></div>
           <div class="session-meta">
-            <span>共 ${s.total} 句</span>
+            <span>${t('totalSentencesShort', s.total)}</span>
             <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
-            <span>${s.percent}% 完成</span>
+            <span>${t('completedShort')} ${s.percent}%</span>
             <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;"></span>
             <span>${new Date(s.createdAt).toLocaleDateString()}</span>
           </div>
@@ -618,14 +864,14 @@ function renderHome(container) {
           </div>
         </div>
         <div class="session-actions">
-          <button class="btn btn-primary" data-action="continue" data-id="${s.id}">${ICONS.play}继续</button>
-          <button class="btn btn-secondary" data-action="restart" data-id="${s.id}">${ICONS.rotateCcw}重练</button>
-          <button class="btn btn-danger" data-action="delete" data-id="${s.id}">${ICONS.trash}删除</button>
+          <button class="btn btn-primary" data-action="continue" data-id="${s.id}">${ICONS.play}${t('continue')}</button>
+          <button class="btn btn-secondary" data-action="restart" data-id="${s.id}">${ICONS.rotateCcw}${t('restart')}</button>
+          <button class="btn btn-danger" data-action="delete" data-id="${s.id}">${ICONS.trash}${t('delete')}</button>
         </div>
       </div>`;
     }
 
-    let html = `<div class="card-title" style="margin-bottom:16px">我的听写</div>`;
+    let html = `<div class="card-title" style="margin-bottom:16px">${t('myDictations')}</div>`;
 
     if (inProgress.length) {
       html += `<div class="session-list">${inProgress.map(sessionItemHtml).join('')}</div>`;
@@ -636,7 +882,7 @@ function renderHome(container) {
       <details style="margin-top:${inProgress.length ? '20' : '0'}px">
         <summary style="cursor:pointer;font-size:14px;font-weight:600;color:var(--text-secondary);padding:8px 0;user-select:none;list-style:none;display:flex;align-items:center;gap:6px">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-          已完成 <span style="background:var(--bg);color:var(--success,#52c41a);padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700">${completed.length}</span>
+          ${t('completed')} <span style="background:var(--bg);color:var(--success,#52c41a);padding:1px 8px;border-radius:10px;font-size:12px;font-weight:700">${completed.length}</span>
         </summary>
         <div class="session-list" style="margin-top:8px">${completed.map(sessionItemHtml).join('')}</div>
       </details>`;
@@ -644,16 +890,16 @@ function renderHome(container) {
 
     html += `
     <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
-      <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}新建听写</button>
-      <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}从资料库导入</button>
+      <button class="btn btn-secondary" onclick="setPage('create')">${ICONS.plus}${t('newDictationBtn')}</button>
+      <button class="btn btn-secondary" onclick="setPage('library')">${ICONS.bookOpen}${t('importFromLibrary')}</button>
     </div>
     <div style="margin-top:28px;padding-top:24px;border-top:1.5px solid var(--border)">
-      <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">我的数据</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">导出、导入或清空你的听写记录和错误数据。</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:6px;color:var(--text)">${t('myData')}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">${t('myDataDesc')}</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-secondary" id="btn-export-data">${ICONS.download}导出我的数据</button>
-        <button class="btn btn-secondary" id="btn-import-data">${ICONS.upload}导入我的数据</button>
-        <button class="btn btn-danger" id="btn-clear-data">${ICONS.trash}清空数据</button>
+        <button class="btn btn-secondary" id="btn-export-data">${ICONS.download}${t('exportMyData')}</button>
+        <button class="btn btn-secondary" id="btn-import-data">${ICONS.upload}${t('importMyData')}</button>
+        <button class="btn btn-danger" id="btn-clear-data">${ICONS.trash}${t('clearData')}</button>
         <input type="file" id="data-file-input" accept=".json" style="display:none">
       </div>
     </div>`;
@@ -676,7 +922,7 @@ function renderHome(container) {
         await importMyData(file);
         renderMain();
       } catch (err) {
-        showToast('导入失败：' + (err.message || '未知错误'));
+        showToast(t('importFailed', err.message || 'unknown'));
       }
       dataFileInput.value = '';
     });
@@ -694,7 +940,7 @@ function renderHome(container) {
         await importMyData(file);
         renderMain();
       } catch (err) {
-        showToast('导入失败：' + (err.message || '未知错误'));
+        showToast(t('importFailed', err.message || 'unknown'));
       }
       dataFileInputEmpty.value = '';
     });
@@ -704,11 +950,14 @@ function renderHome(container) {
   const clearBtn = card.querySelector('#btn-clear-data');
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
-      if (confirm('确定清空所有数据吗？\n\n这将删除：\n· 所有听写记录\n· 所有错误记录\n· 所有资料库导入映射\n\n此操作不可恢复，请确认已导出备份。')) {
+      if (confirm(t('confirmClearAll'))) {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(MISTAKES_KEY);
         localStorage.removeItem(PRESET_KEY);
         localStorage.removeItem(LIBRARIES_KEY);
+        try { localStorage.removeItem(LANG_PREFIX + 'dictation-theme'); } catch {}
+        try { localStorage.removeItem(LANG_PREFIX + 'dictation-voice-name'); } catch {}
+        try { localStorage.removeItem(DISPLAY_LANG_KEY); } catch {}
         showToast('数据已清空');
         renderMain();
       }
@@ -721,7 +970,7 @@ function renderHome(container) {
     const id = btn.dataset.id;
     const action = btn.dataset.action;
     if (action === 'delete') {
-      if (confirm('确定删除此练习吗？')) {
+      if (confirm(t('confirmDelete'))) {
         saveSessions(loadSessions().filter(x => x.id !== id));
         // 清理资料库导入映射
         const allLibs = getAllLibraries();
@@ -758,29 +1007,29 @@ function renderCreate(container) {
   const card = document.createElement('div');
   card.className = 'card';
   card.innerHTML = `
-    <div class="card-title">新建听写</div>
-    <div class="card-desc">输入英文原文，系统会自动按句切分，生成听写练习。</div>
+    <div class="card-title">${t('createDictation')}</div>
+    <div class="card-desc">${t('createDictationDesc')}</div>
     <div class="form-group">
-      <label>标题（可选）</label>
-      <input type="text" id="create-title" placeholder="例如：每日英语新闻">
+      <label>${t('titleLabel')}</label>
+      <input type="text" id="create-title" placeholder="${t('titlePlaceholder')}">
     </div>
     <div class="form-group">
-      <label>英文原文</label>
-      <textarea id="create-text" placeholder="在此粘贴一段英文..."></textarea>
+      <label>${t('textLabel')}</label>
+      <textarea id="create-text" placeholder="${t('textPlaceholder')}"></textarea>
     </div>
     <div class="action-bar" style="padding:0;border:none;background:transparent">
-      <button class="btn btn-primary" id="btn-create">${ICONS.sparkles}生成练习</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.x}取消</button>
+      <button class="btn btn-primary" id="btn-create">${ICONS.sparkles}${t('generateBtn')}</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.x}${t('cancel')}</button>
     </div>
   `;
   container.appendChild(card);
 
   card.querySelector('#btn-create').addEventListener('click', () => {
-    const title = document.getElementById('create-title').value.trim() || '未命名练习';
+    const title = document.getElementById('create-title').value.trim() || t('newDictation');
     const text = document.getElementById('create-text').value.trim();
-    if (!text) { showToast('请输入英文原文'); return; }
+    if (!text) { showToast(t('pleaseInput')); return; }
     const sentences = splitSentences(text);
-    if (!sentences.length) { showToast('未能识别到句子'); return; }
+    if (!sentences.length) { showToast(t('noSentences')); return; }
     const session = {
       id: generateId(),
       title,
@@ -805,34 +1054,26 @@ function initProgress(n) {
   };
 }
 
-// 基于 LCS 的单词级 diff,返回原文中匹配上的索引集合
+// 基于贪心正向匹配的字符级 diff，返回原文中匹配上的索引集合
 function diffWords(src, tgt) {
-  // 先做数字短语归一化（如 "nineteen eighty-five" → "1985"），
-  // 同时记录归一化后的词到原始索引的映射
   const nSrc = normalizeTokensWithMap(src);
   const nTgt = normalizeTokensWithMap(tgt);
-  const m = nSrc.tokens.length, n = nTgt.tokens.length;
-  const dp = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (normalizeWord(nSrc.tokens[i - 1]) === normalizeWord(nTgt.tokens[j - 1])) {
-        dp[i][j] = dp[i - 1][j - 1] + 1;
-      } else {
-        dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+  const matchedNorm = new Set();
+  let j = 0;
+  for (let i = 0; i < nSrc.tokens.length; i++) {
+    // 在当前用户位置 j 往后查找匹配的字符
+    let found = -1;
+    for (let k = j; k < nTgt.tokens.length; k++) {
+      if (normalizeWord(nSrc.tokens[i]) === normalizeWord(nTgt.tokens[k])) {
+        found = k;
+        break;
       }
     }
-  }
-  const matchedNorm = new Set();
-  let i = m, j = n;
-  while (i > 0 && j > 0) {
-    if (normalizeWord(nSrc.tokens[i - 1]) === normalizeWord(nTgt.tokens[j - 1])) {
-      matchedNorm.add(i - 1);
-      i--; j--;
-    } else if (dp[i - 1][j] >= dp[i][j - 1]) {
-      i--;
-    } else {
-      j--;
+    if (found >= 0) {
+      matchedNorm.add(i);
+      j = found + 1;  // 用户已匹配的字符不再参与后续匹配
     }
+    // 没找到：源文本的这个字符即是用户漏写的 gap
   }
   // 通过映射展开为原始 src 的索引
   const matched = new Set();
@@ -861,63 +1102,32 @@ function escapeHtml(text) {
 
 let selectedVoice = null;
 
-function getVoiceByRegion(region) {
-  if (!window.speechSynthesis) return null;
-  const voices = window.speechSynthesis.getVoices() || [];
-  const enVoices = voices.filter(v => v.lang && v.lang.toLowerCase().startsWith('en'));
-  if (enVoices.length === 0) return null;
-  if (region === 'GB') {
-    const v = enVoices.find(v => v.name === 'Google UK English Male');
-    if (v) return v;
-    return enVoices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-gb')) || enVoices[0];
-  }
-  // US default
-  const v = enVoices.find(v => v.name === 'Google US English');
-  if (v) return v;
-  return enVoices.find(v => v.lang && v.lang.toLowerCase().startsWith('en-us')) || enVoices[0];
-}
-
-function getSavedVoiceRegion() {
-  try { return localStorage.getItem('dictation-voice-region') || 'US'; } catch { return 'US'; }
+function getChineseVoices() {
+  if (!window.speechSynthesis) return [];
+  return (window.speechSynthesis.getVoices() || []).filter(v =>
+    v.lang && (v.lang.toLowerCase().startsWith('zh') || v.lang.toLowerCase().startsWith('cmn'))
+  );
 }
 
 function pickBestVoice() {
-  return getVoiceByRegion(getSavedVoiceRegion());
+  const cnVoices = getChineseVoices();
+  if (cnVoices.length === 0) return null;
+  // 优先选 Google 普通话
+  const google = cnVoices.find(v => /google/i.test(v.name) && /mandarin|普通话|putonghua|zh/i.test(v.name + ' ' + v.lang));
+  if (google) return google;
+  // 其次任意 Google 中文语音
+  const anyGoogle = cnVoices.find(v => /google/i.test(v.name));
+  if (anyGoogle) return anyGoogle;
+  return cnVoices[0];
 }
 
 function initVoices() {
   selectedVoice = pickBestVoice();
 }
 
-function buildVoiceToggleHTML() {
-  const region = getSavedVoiceRegion();
-  return `<div class="voice-toggle"><button class="voice-chip ${region === 'US' ? 'active' : ''}" data-region="US">US</button><button class="voice-chip ${region === 'GB' ? 'active' : ''}" data-region="GB">GB</button></div>`;
-}
-
-function attachVoiceToggleListeners(container) {
-  const toggle = container.querySelector('.voice-toggle');
-  if (!toggle) return;
-  toggle.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-region]');
-    if (!btn) return;
-    const region = btn.dataset.region;
-    const voice = getVoiceByRegion(region);
-    if (voice) {
-      selectedVoice = voice;
-      try { localStorage.setItem('dictation-voice-region', region); } catch {}
-      toggle.querySelectorAll('.voice-chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.region === region);
-      });
-      if (window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance('Hello');
-        u.voice = voice;
-        u.volume = 0.3;
-        window.speechSynthesis.speak(u);
-      }
-    }
-  });
-}
+// 中文听写不需要音色选择
+function buildVoiceToggleHTML() { return ''; }
+function attachVoiceToggleListeners() {}
 
 // macOS Chrome 第一次 getVoices() 可能为空，需要等 voiceschanged
 if (window.speechSynthesis) {
@@ -930,13 +1140,17 @@ if (window.speechSynthesis) {
 function speak(text, rate = 1.0, onEnd) {
   if (!window.speechSynthesis) { return false; }
   window.speechSynthesis.cancel();
+
+  const voice = pickBestVoice();
+  if (voice) selectedVoice = voice;
+
   const u = new SpeechSynthesisUtterance(text);
   u.rate = rate;
   if (selectedVoice) {
     u.voice = selectedVoice;
-    u.lang = selectedVoice.lang || 'en-US';
+    u.lang = selectedVoice.lang || 'zh-CN';
   } else {
-    u.lang = 'en-US';
+    u.lang = 'zh-CN';
   }
   if (onEnd) {
     u.onend = onEnd;
@@ -947,7 +1161,7 @@ function speak(text, rate = 1.0, onEnd) {
 }
 
 let translationCache = {};
-async function translateText(text, from = 'en', to = 'zh') {
+async function translateText(text, from = 'zh', to = 'en') {
   if (!text) return '';
   const key = `${from}|${to}|${text}`;
   if (translationCache[key]) return translationCache[key];
@@ -972,7 +1186,7 @@ function renderPractice(container) {
   if (idx >= session.sentences.length) { setPage('result'); return; }
 
   const sentence = session.sentences[idx];
-  const words = sentence.trim().split(/\s+/);
+  const words = tokenizeChinese(sentence);
   const state = progress.sentenceStates[idx] || {};
   let locked = [];
   let gapDrafts = {};
@@ -990,25 +1204,25 @@ function renderPractice(container) {
   card.innerHTML = `
     <div class="practice-header">
       <div>
-        <div class="practice-title">${escapeHtml(session.title || '未命名练习')}</div>
-        <div class="practice-subtitle">第 ${idx + 1} / ${session.sentences.length} 句 · 已完成 ${totalPercent}%</div>
+        <div class="practice-title">${escapeHtml(session.title || t('newDictation'))}</div>
+        <div class="practice-subtitle">${t('sentenceProgress', idx + 1, session.sentences.length, totalPercent)}</div>
         <div class="progress-track">
           <div class="progress-fill" style="width:${totalPercent}%"></div>
         </div>
       </div>
       <div class="session-actions">
-        <button class="btn btn-sm btn-secondary btn-icon" id="btn-prev" ${idx <= 0 ? 'disabled' : ''} title="上一句">${ICONS.chevronLeft}</button>
-        <button class="btn btn-sm btn-secondary btn-icon" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''} title="下一句">${ICONS.chevronRight}</button>
-        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('home')" title="返回">${ICONS.home}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" id="btn-prev" ${idx <= 0 ? 'disabled' : ''} title="${t('prevTitle')}">${ICONS.chevronLeft}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" id="btn-next" ${idx >= session.sentences.length - 1 ? 'disabled' : ''} title="${t('nextTitle')}">${ICONS.chevronRight}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('home')" title="${t('backTitle')}">${ICONS.home}</button>
       </div>
     </div>
     <div class="player-bar">
-      <button class="player-btn" id="btn-play" title="播放">
+      <button class="player-btn" id="btn-play" title="${t("playTitle")}">
         <svg class="play-icon" viewBox="0 0 24 24" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         <svg class="pause-icon" viewBox="0 0 24 24" width="24" height="24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
       </button>
       <div class="speed-control">
-        <label>语速</label>
+        <label>${t("speedLabel")}</label>
         <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
         <span class="speed-value" id="rate-value">1.0x</span>
       </div>
@@ -1017,13 +1231,13 @@ function renderPractice(container) {
     </div>
     <div class="dictation-area" id="dictation-area"></div>
     <div class="action-bar">
-      <button class="btn btn-primary" id="btn-check">${ICONS.check}提交检查</button>
-      <button class="btn btn-secondary" id="btn-show-original">${ICONS.eye}显示原文</button>
-      <button class="btn btn-secondary" id="btn-skip">${ICONS.skipForward}跳过</button>
+      <button class="btn btn-primary" id="btn-check">${ICONS.check}${t('submitCheck')}</button>
+      <button class="btn btn-secondary" id="btn-show-original">${ICONS.eye}${t('showOriginal')}</button>
+      <button class="btn btn-secondary" id="btn-skip">${ICONS.skipForward}${t('skipBtn')}</button>
     </div>
     <div class="side-panel" id="side-panel" style="display:none">
       <div id="word-chips-area" style="padding:16px 24px;display:flex;flex-wrap:wrap;gap:8px"></div>
-      <div id="sentence-trans" style="padding:0 24px 16px"><div class="translation-text">加载中...</div></div>
+      <div id="sentence-trans" style="padding:0 24px 16px"><div class="translation-text">${t('loading')}</div></div>
     </div>
   `;
   container.appendChild(card);
@@ -1032,9 +1246,9 @@ function renderPractice(container) {
   if (!hasHistory) {
     dictationArea.innerHTML = `
       <div class="form-group" style="margin-bottom:0">
-        <label style="margin-bottom:10px">请听写整句</label>
-        <textarea class="dictation-full" id="full-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
+        <label style="margin-bottom:10px">${t('listenFullSentence')}</label>
+        <textarea class="dictation-full" id="full-input" placeholder="${t('fullInputPlaceholder')}"></textarea>
+        <div class="keyboard-hint"><kbd>${t('enter')}</kbd> ${t('startInput')} · <kbd>${t('space')}</kbd> ${t('playPause')} · <kbd>${t('shift')}</kbd>+<kbd>${t('space')}</kbd> ${t('inInputField')} ${t('playPause')} · <kbd>${t('ctrl')}</kbd>+<kbd>${t('enter')}</kbd> ${t('submitCheck')}</div>
       </div>
     `;
   } else {
@@ -1072,7 +1286,7 @@ function renderPractice(container) {
     dictationArea.appendChild(line);
     const hint = document.createElement('div');
     hint.className = 'keyboard-hint';
-    hint.innerHTML = '<kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查';
+    hint.innerHTML = '<kbd>' + t('enter') + '</kbd> ' + t('startInput') + ' · <kbd>' + t('space') + '</kbd> ' + t('playPause') + ' · <kbd>' + t('shift') + '</kbd>+<kbd>' + t('space') + '</kbd> ' + t('inInputField') + ' ' + t('playPause') + ' · <kbd>' + t('ctrl') + '</kbd>+<kbd>' + t('enter') + '</kbd> ' + t('submitCheck');
     dictationArea.appendChild(hint);
   }
 
@@ -1090,7 +1304,7 @@ function renderPractice(container) {
   function setPlaying(playing) {
     isPlaying = playing;
     playBtn.classList.toggle('playing', playing);
-    playStatus.textContent = playing ? '播放中…' : '';
+    playStatus.textContent = playing ? t('playing') : '';
   }
 
   function togglePlay() {
@@ -1146,7 +1360,7 @@ function renderPractice(container) {
           tip.textContent = '…';
           tip.style.display = '';
           const t = await translateText(w);
-          tip.textContent = t || '（暂无翻译）';
+          tip.textContent = t || t('noTranslation');
         });
         wrapper.appendChild(chip);
         wrapper.appendChild(tip);
@@ -1162,7 +1376,7 @@ function renderPractice(container) {
     if (!hasHistory) {
       const fullText = card.querySelector('#full-input').value.trim();
       if (!fullText) { showToast('请输入内容'); return; }
-      const userWords = fullText.split(/\s+/);
+      const userWords = tokenizeChinese(fullText);
       const matchedSet = diffWords(words, userWords);
       const newLocked = Array.from(matchedSet);
       if (newLocked.length === words.length) {
@@ -1178,7 +1392,7 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词，请补全剩余部分`);
+      showToast(t('correctNofM', newLocked.length, words.length));
     } else {
       const inputs = card.querySelectorAll('.word-gap');
       const lockedSet = new Set(locked);
@@ -1187,37 +1401,25 @@ function renderPractice(container) {
       inputs.forEach(inp => {
         const indices = JSON.parse(inp.dataset.indices);
         const val = inp.value.trim();
-        const userWords = val.split(/\s+/);
-        let blockMatchAll = true;
-
-        // 先尝试逐词精确匹配
-        let exactMatchCount = 0;
-        indices.forEach((srcIdx, k) => {
-          const uw = userWords[k] || '';
-          if (normalizeWord(uw) === normalizeWord(words[srcIdx])) {
-            lockedSet.add(srcIdx);
-            exactMatchCount++;
+        if (!val) return;
+        // 用 diffWords（贪心匹配）比对该 gap 内的原文与用户输入
+        const srcWords = indices.map(i => words[i]);
+        const userWords = tokenizeChinese(val);
+        const matched = diffWords(srcWords, userWords);
+        // matched 是 srcWords 中匹配上的索引（相对于 srcWords 的偏移）
+        if (matched.size === indices.length) {
+          // 全部匹配
+          indices.forEach(srcIdx => lockedSet.add(srcIdx));
+        } else {
+          // 部分匹配：只锁定匹配上的
+          let anyMatched = false;
+          matched.forEach(localIdx => {
+            lockedSet.add(indices[localIdx]);
+            anyMatched = true;
+          });
+          if (!anyMatched) {
+            newDrafts[indices[0]] = val;
           }
-        });
-
-        // 如果逐词匹配不全对，尝试数字短语匹配
-        // （如原文 "1985" 对应一个词，用户写 "nineteen eighty-five" 三个词）
-        if (exactMatchCount < indices.length) {
-          // 收集该 gap 对应的原文词
-          const srcWords = indices.map(i => words[i]);
-          // 分别做数字短语归一化后比较
-          const normSrc = normalizeTokensWithMap(srcWords).tokens.join(' ');
-          const normUser = normalizeTokensWithMap(userWords).tokens.join(' ');
-          if (normSrc === normUser) {
-            // 数字短语匹配成功，锁定所有原文词
-            indices.forEach(srcIdx => lockedSet.add(srcIdx));
-            blockMatchAll = true;
-          } else {
-            blockMatchAll = false;
-          }
-        }
-        if (!blockMatchAll) {
-          newDrafts[indices[0]] = val;
         }
       });
       const newLocked = Array.from(lockedSet).sort((a, b) => a - b);
@@ -1234,7 +1436,7 @@ function renderPractice(container) {
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
-      showToast(`对了 ${newLocked.length}/${words.length} 个词，继续补全`);
+      showToast(t('correctNofM', newLocked.length, words.length));
     }
   }
 
@@ -1258,7 +1460,7 @@ function renderPractice(container) {
 
   // Skip
   card.querySelector('#btn-skip').addEventListener('click', () => {
-    if (confirm('确定跳过本句吗？进度将标记为跳过。')) {
+    if (confirm(t('confirmSkip'))) {
       markSentenceDone(progress, idx);
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -1303,7 +1505,7 @@ function markSentenceDone(progress, idx) {
 async function loadTranslations(sentence, card) {
   const el = card.querySelector('#sentence-trans');
   const t = await translateText(sentence);
-  el.innerHTML = `<div class="translation-text">${escapeHtml(t || '翻译失败')}</div>`;
+  el.innerHTML = `<div class="translation-text">${escapeHtml(t || t('translateFailed'))}</div>`;
 }
 
 function renderResult(container) {
@@ -1315,25 +1517,25 @@ function renderResult(container) {
   const card = document.createElement('div');
   card.className = 'card result-card';
   card.innerHTML = `
-    <h2>${accuracy === 100 ? '🎉 全部完成' : '练习完成'}</h2>
-    <p>${escapeHtml(session.title || '未命名练习')}</p>
+    <h2>${accuracy === 100 ? '🎉 ' + t('fullyComplete') : t('practiceComplete')}</h2>
+    <p>${escapeHtml(session.title || t('newDictation'))}</p>
     <div class="result-stats">
       <div class="stat-item">
         <div class="stat-value">${done}</div>
-        <div class="stat-label">已完成</div>
+        <div class="stat-label">${t('completedLabel')}</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">${total}</div>
-        <div class="stat-label">总句数</div>
+        <div class="stat-label">${t('totalSentences')}</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">${accuracy}%</div>
-        <div class="stat-label">完成率</div>
+        <div class="stat-label">${t('completionRate')}</div>
       </div>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-primary" id="btn-restart">${ICONS.rotateCcw}再次练习</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
+      <button class="btn btn-primary" id="btn-restart">${ICONS.rotateCcw}${t('practiceAgain')}</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}${t('backToHome')}</button>
     </div>
   `;
   container.appendChild(card);
@@ -1358,7 +1560,7 @@ function renderLibrary(container) {
   card.className = 'card';
 
   let activeLevel = 'all';
-  const levels = ['A1','A2','B1','B2','C1','C2'];
+  const levels = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
 
   function getSessionStatus(presetId) {
     const sessionId = importedMap[presetId];
@@ -1371,31 +1573,31 @@ function renderLibrary(container) {
   }
 
   function buildHtml() {
-    let html = `<div class="card-title">资料库</div>
+    let html = `<div class="card-title">${t("library")}</div>
     <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
-      <div class="card-desc" style="margin-bottom:0">当前：${escapeHtml(activeLibrary.name)} · 共 ${lessons.length} 篇</div>
+      <div class="card-desc" style="margin-bottom:0">${t('currentLibrary', escapeHtml(activeLibrary.name), lessons.length)}</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-sm btn-secondary" id="btn-import-library">${ICONS.upload}导入资料库</button>
+        <button class="btn btn-sm btn-secondary" id="btn-import-library">${ICONS.upload}${t('importLibrary')}</button>
         <input type="file" id="library-file-input" accept=".json" style="display:none">
       </div>
     </div>`;
 
     // Library selector
     html += `<div class="level-filter" style="margin-bottom:16px;padding:12px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border);align-items:center">
-      <span style="font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap">资料库：</span>`;
+      <span style="font-size:13px;color:var(--text-muted);font-weight:600;white-space:nowrap">${t("libraryLabel")}</span>`;
     allLibraries.forEach(lib => {
       const isActive = lib.id === activeLibrary.id;
       html += `<button class="btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}" data-switch-lib="${lib.id}" style="position:relative">
-        ${escapeHtml(lib.name)}${lib.type === 'imported' ? ` <span data-delete-lib="${lib.id}" style="margin-left:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.7" title="删除" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--danger)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>` : ''}
+        ${escapeHtml(lib.name)}${lib.type === 'imported' ? ` <span data-delete-lib="${lib.id}" style="margin-left:6px;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;opacity:0.7" title="${t('delete')}" onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.7"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--danger)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span>` : ''}
       </button>`;
     });
     html += `</div>`;
 
     // 动态级别列表
-    const cefrOrder = ['A1','A2','B1','B2','C1','C2'];
+    const hskOrder = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
     const displayLevels = [...new Set(lessons.map(l => l.level).filter(Boolean))].sort((a, b) => {
-      const ia = cefrOrder.indexOf(a);
-      const ib = cefrOrder.indexOf(b);
+      const ia = hskOrder.indexOf(a);
+      const ib = hskOrder.indexOf(b);
       if (ia !== -1 && ib !== -1) return ia - ib;
       if (ia !== -1) return -1;
       if (ib !== -1) return 1;
@@ -1404,7 +1606,7 @@ function renderLibrary(container) {
 
     // Level filter
     html += `<div class="level-filter">
-      <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">全部</button>
+      <button class="btn btn-sm ${activeLevel === 'all' ? 'btn-primary' : 'btn-secondary'}" data-level="all">${t("allLevels")}</button>
       ${displayLevels.map(lv => `<button class="btn btn-sm ${activeLevel === lv ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
     </div>`;
 
@@ -1416,36 +1618,36 @@ function renderLibrary(container) {
     });
 
     if (Object.keys(groups).length === 0) {
-      html += `<div class="empty-state"><p>该级别暂无数据</p></div>`;
+      html += `<div class="empty-state"><p>${t("noData")}</p></div>`;
     } else {
       displayLevels.forEach(lv => {
         if (!groups[lv]) return;
         html += `<div class="level-section" style="margin-bottom:24px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
             <span class="level-badge level-${lv.toLowerCase()}">${lv}</span>
-            <span style="font-size:13px;color:var(--text-muted)">${groups[lv].length} 篇</span>
+            <span style="font-size:13px;color:var(--text-muted)">${t('countLessons', groups[lv].length)}</span>
           </div>
           <div class="session-list">`;
         groups[lv].forEach(l => {
           const st = getSessionStatus(l.id);
           const percent = st.total ? Math.round(st.done / st.total * 100) : 0;
           let statusBadge = '';
-          if (!st.imported) statusBadge = `<span style="font-size:12px;color:var(--text-muted)">未开始</span>`;
-          else if (percent === 100) statusBadge = `<span style="font-size:12px;color:var(--success);font-weight:600">已完成</span>`;
-          else statusBadge = `<span style="font-size:12px;color:var(--primary);font-weight:600">进度 ${percent}%</span>`;
+          if (!st.imported) statusBadge = `<span style="font-size:12px;color:var(--text-muted)">${t("notStarted")}</span>`;
+          else if (percent === 100) statusBadge = `<span style="font-size:12px;color:var(--success);font-weight:600">${t("completedShort")}</span>`;
+          else statusBadge = `<span style="font-size:12px;color:var(--primary);font-weight:600">${t("progressPercent", percent)}</span>`;
 
           html += `<div class="session-item">
             <div class="session-info">
               <div class="session-title">${escapeHtml(l.title)}</div>
               <div class="session-meta">
-                <span>${st.total ? `共 ${st.total} 句` : ''}</span>
+                <span>${st.total ? t('totalSentencesShort', st.total) : ''}</span>
                 <span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;display:inline-block;opacity:0.5"></span>
                 ${statusBadge}
               </div>
             </div>
             <div class="session-actions">
-              <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? ICONS.play + '继续' : ICONS.play + '开始练习'}</button>
-              ${st.imported ? `<button class="btn btn-secondary" data-action="restart" data-id="${l.id}">${ICONS.rotateCcw}重置</button>` : ''}
+              <button class="btn btn-primary" data-action="start" data-id="${l.id}">${st.imported ? ICONS.play + t("continue") : ICONS.play + t("startPractice")}</button>
+              ${st.imported ? `<button class="btn btn-secondary" data-action="restart" data-id="${l.id}">${ICONS.rotateCcw}${t('resetBtn')}</button>` : ''}
             </div>
           </div>`;
         });
@@ -1488,10 +1690,10 @@ function renderLibrary(container) {
       };
       libData.libraries.push(newLib);
       saveLibraries(libData);
-      showToast(`资料库 "${name}" 导入成功`);
+      showToast(t('imported') + ' ' + name);
       renderMain();
     } catch (err) {
-      showToast('导入失败：' + (err.message || '未知错误'));
+      showToast(t('importFailed', err.message || 'unknown'));
     }
     input.value = '';
   }
@@ -1513,7 +1715,7 @@ function renderLibrary(container) {
       if (libId === 'default') return;
       const lib = getAllLibraries().find(l => l.id === libId);
       if (!lib) return;
-      if (confirm(`确定删除资料库 "${lib.name}" 吗？相关的练习映射将被清理。`)) {
+      if (confirm(t("confirmDeleteLibrary", lib.name))) {
         const libData = loadLibraries();
         libData.libraries = libData.libraries.filter(l => l.id !== libId);
         if (libData.activeLibraryId === libId) {
@@ -1616,10 +1818,10 @@ function renderDrill(container) {
     card.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">${ICONS.target}</div>
-        <h3>暂无待训练词汇</h3>
-        <p>在常规听写练习中，系统会自动记录你听写出错的单词。积累足够错误记录后，来这里进行专项突破。</p>
+        <h3>${t("noWordsToTrain")}</h3>
+        <p>${t("drillDesc")}</p>
         <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}去资料库</button>
+          <button class="btn btn-primary" onclick="setPage('library')">${ICONS.bookOpen}${t("goToLibrary")}</button>
         </div>
       </div>`;
     container.appendChild(card);
@@ -1627,10 +1829,10 @@ function renderDrill(container) {
   }
 
   const savedLevel = (() => {
-    try { return localStorage.getItem('dictation-drill-level') || ''; } catch { return ''; }
+    try { return localStorage.getItem(LANG_PREFIX + 'dictation-drill-level') || ''; } catch { return ''; }
   })();
-  const levels = ['A1','A2','B1','B2','C1','C2'];
-  const defaultLevel = savedLevel && levels.includes(savedLevel) ? savedLevel : 'B1';
+  const levels = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
+  const defaultLevel = savedLevel && levels.includes(savedLevel) ? savedLevel : 'HSK3';
 
   const MAX_PROMPT_WORDS = 30;
   const promptWords = getMistakeWordsForPrompt(MAX_PROMPT_WORDS);
@@ -1639,69 +1841,69 @@ function renderDrill(container) {
 
   function buildPromptText(level) {
     const levelDesc = {
-      A1: '使用非常基础的词汇和简单句型，适合英语初学者',
-      A2: '使用基础词汇和常见句型，句子较短，语法简单',
-      B1: '使用中等难度词汇，句子结构适中，有一定复杂度',
-      B2: '使用较丰富词汇，包含复合句和从句，难度适中偏高',
-      C1: '使用较高级词汇和复杂句型，表达流畅自然',
-      C2: '使用学术或高级词汇，句式复杂多变，接近母语水平'
+      HSK1: '使用HSK1级词汇（约150词），极简单句，适合零起点学习者',
+      HSK2: '使用HSK2级词汇（约300词），简单句型，句子较短',
+      HSK3: '使用HSK3级词汇（约600词），中等难度，句子结构适中',
+      HSK4: '使用HSK4级词汇（约1200词），较丰富词汇，包含复合句',
+      HSK5: '使用HSK5级词汇（约2500词），较高级词汇和复杂句型',
+      HSK6: '使用HSK6级词汇（约5000词），高级词汇，句式复杂多变'
     };
     if (!promptWords.length) return '';
-    return `请写一段自然流畅的英文短文，尽量包含以下单词：${promptWords.join('、')}。这些单词是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。\n\n文章难度要求：CEFR ${level} 级别。${levelDesc[level]}。短文长度适中（约 150-250 词），主题不限，语气轻松自然即可。`;
+    return `请写一段自然流畅的中文短文，尽量包含以下词语：${promptWords.join('、')}。这些词语是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。\n\n文章难度要求：HSK ${level} 级别。${levelDesc[level]}。短文长度适中（约 100-200 字），主题围绕中国文化，语气自然即可。`;
   }
 
   const promptText = buildPromptText(defaultLevel);
 
   card.innerHTML = `
-    <div class="card-title">专项训练</div>
-    <div class="card-desc">针对听写出错的薄弱词汇进行集中突破。系统会自动生成 LLM 提示词，让大语言模型为你量身打造训练文章。</div>
+    <div class="card-title">${t('drillTitle')}</div>
+    <div class="card-desc">${t('drillDesc')}</div>
 
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;padding:16px;background:var(--bg);border-radius:var(--radius);border:1.5px solid var(--border)">
       <div style="width:48px;height:48px;border-radius:50%;background:var(--danger-soft);color:var(--danger);display:flex;align-items:center;justify-content:center;flex-shrink:0">${ICONS.target}</div>
       <div>
         <div style="font-size:20px;font-weight:800;color:var(--text);line-height:1">${list.length}</div>
-        <div style="font-size:13px;color:var(--text-muted)">个待训练词汇</div>
+        <div style="font-size:13px;color:var(--text-muted)">${t("wordsToTrain")}</div>
       </div>
       <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
-        <button class="btn btn-primary" id="btn-gen-prompt" ${promptWords.length ? '' : 'disabled'}>${ICONS.sparkles}生成提示词</button>
+        <button class="btn btn-primary" id="btn-gen-prompt" ${promptWords.length ? '' : 'disabled'}>${ICONS.sparkles}${t("generatePrompt")}</button>
       </div>
     </div>
 
     <div id="prompt-area" style="display:none;margin-bottom:20px">
       <div class="form-group" style="margin-bottom:12px">
-        <label>选择文章难度</label>
+        <label>${t("selectDifficulty")}</label>
         <div class="level-filter" id="drill-level-filter" style="margin-bottom:0">
           ${levels.map(lv => `<button class="btn btn-sm ${lv === defaultLevel ? 'btn-primary' : 'btn-secondary'}" data-level="${lv}">${lv}</button>`).join('')}
         </div>
       </div>
       <div class="form-group" style="margin-bottom:8px">
-        <label>LLM 提示词${isTruncated ? `（已从 ${allPromptWords.length} 个错词中筛选出 ${promptWords.length} 个）` : `（包含 ${promptWords.length} 个错词）`}</label>
+        <label>${isTruncated ? t("promptLabelTruncated", promptWords.length, allPromptWords.length) : t("promptLabel", promptWords.length)}</label>
         <textarea id="drill-prompt" readonly style="min-height:120px;background:var(--bg);cursor:text">${escapeHtml(promptText)}</textarea>
       </div>
       <div style="display:flex;gap:8px">
-        <button class="btn btn-secondary" id="btn-copy-prompt">${ICONS.copy}复制提示词</button>
+        <button class="btn btn-secondary" id="btn-copy-prompt">${ICONS.copy}${t("copyPrompt")}</button>
       </div>
     </div>
 
     <div class="form-group" style="margin-bottom:16px">
-      <label>粘贴 LLM 返回的英文文章</label>
-      <textarea id="drill-text" placeholder="将大语言模型生成的英文文章粘贴到这里..."></textarea>
+      <label>${t("pasteArticle")}</label>
+      <textarea id="drill-text" placeholder="${t("pasteArticlePlaceholder")}"></textarea>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <button class="btn btn-primary" id="btn-start-drill">${ICONS.zap}开始专项训练</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
+      <button class="btn btn-primary" id="btn-start-drill">${ICONS.zap}${t("startDrill")}</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}${t('backToHome')}</button>
     </div>
 
     <div style="margin-top:24px">
-      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px">${ICONS.list}错误记录 <span style="font-weight:400;color:var(--text-muted);font-size:12px">（点击选中，批量删除）</span></div>
+      <div style="font-size:13px;font-weight:600;color:var(--text-secondary);margin-bottom:10px;display:flex;align-items:center;gap:6px">${ICONS.list}${t('mistakesRecorded')} <span style="font-weight:400;color:var(--text-muted);font-size:12px">${t('clickSelectBatchDelete')}</span></div>
       <div id="mistake-chips" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-        ${list.map(m => `<span class="mistake-chip" data-key="${normalizeWord(m.word)}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary);cursor:pointer;user-select:none;transition:all .15s"><strong style="color:var(--text)">${escapeHtml(m.word)}</strong><span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;opacity:0.5"></span>出错 ${m.count} 次</span>`).join('')}
+        ${list.map(m => `<span class="mistake-chip" data-key="${normalizeWord(m.word)}" style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;background:var(--bg);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text-secondary);cursor:pointer;user-select:none;transition:all .15s"><strong style="color:var(--text)">${escapeHtml(m.word)}</strong><span style="width:4px;height:4px;background:var(--text-muted);border-radius:50%;opacity:0.5"></span>${t('mistakeCount', m.count)}</span>`).join('')}
       </div>
       <div id="batch-actions" style="display:none;gap:8px;align-items:center">
-        <span style="font-size:13px;color:var(--text-muted)" id="selected-count">已选 0 个</span>
-        <button class="btn btn-sm btn-secondary" id="btn-select-all">全选</button>
-        <button class="btn btn-sm btn-secondary" id="btn-deselect-all">取消全选</button>
-        <button class="btn btn-sm btn-danger" id="btn-batch-delete">${ICONS.trash}删除选中</button>
+        <span style="font-size:13px;color:var(--text-muted)" id="selected-count">${t('selectedCount', 0)}</span>
+        <button class="btn btn-sm btn-secondary" id="btn-select-all">${t("selectAll")}</button>
+        <button class="btn btn-sm btn-secondary" id="btn-deselect-all">${t("deselectAll")}</button>
+        <button class="btn btn-sm btn-danger" id="btn-batch-delete">${ICONS.trash}${t("deleteSelected")}</button>
       </div>
     </div>
   `;
@@ -1716,7 +1918,7 @@ function renderDrill(container) {
       const btn = e.target.closest('[data-level]');
       if (!btn) return;
       currentLevel = btn.dataset.level;
-      try { localStorage.setItem('dictation-drill-level', currentLevel); } catch {}
+      try { localStorage.setItem(LANG_PREFIX + 'dictation-drill-level', currentLevel); } catch {}
       // Update button styles
       levelFilter.querySelectorAll('button').forEach(b => {
         b.className = `btn btn-sm ${b.dataset.level === currentLevel ? 'btn-primary' : 'btn-secondary'}`;
@@ -1738,7 +1940,7 @@ function renderDrill(container) {
     const text = card.querySelector('#drill-prompt').value;
     try {
       await navigator.clipboard.writeText(text);
-      showToast('提示词已复制');
+      showToast(t('promptCopied'));
     } catch {
       showToast('复制失败，请手动复制');
     }
@@ -1764,7 +1966,7 @@ function renderDrill(container) {
       }
     });
     batchActions.style.display = selectedKeys.size > 0 ? 'flex' : 'none';
-    selectedCountEl.textContent = `已选 ${selectedKeys.size} 个`;
+    selectedCountEl.textContent = t("selectedCount", selectedKeys.size);
   }
 
   chipsContainer.addEventListener('click', (e) => {
@@ -1785,7 +1987,7 @@ function renderDrill(container) {
   });
   card.querySelector('#btn-batch-delete').addEventListener('click', () => {
     if (!selectedKeys.size) return;
-    if (!confirm(`确定删除选中的 ${selectedKeys.size} 个错误记录吗？`)) return;
+    if (!confirm(t("confirmDeleteSelected", selectedKeys.size))) return;
     const m = loadMistakes();
     selectedKeys.forEach(k => delete m[k]);
     saveMistakes(m);
@@ -1800,7 +2002,7 @@ function renderDrill(container) {
     const sentences = splitSentences(text);
     if (!sentences.length) { showToast('未能识别到句子'); return; }
     drillSession = {
-      title: '专项训练',
+      title: t('drillTitle'),
       text,
       sentences,
       currentIdx: 0,
@@ -1820,30 +2022,30 @@ function renderDrillPractice(container) {
   }
 
   const sentence = drillSession.sentences[idx];
-  const words = sentence.trim().split(/\s+/);
+  const words = tokenizeChinese(sentence);
 
   const card = document.createElement('div');
   card.className = 'practice-card';
   card.innerHTML = `
     <div class="practice-header">
       <div>
-        <div class="practice-title">专项训练</div>
-        <div class="practice-subtitle">第 ${idx + 1} / ${drillSession.sentences.length} 句 · 仅一次机会</div>
+        <div class="practice-title">${t('drillTitle')}</div>
+        <div class="practice-subtitle">${t('drillProgress', idx + 1, drillSession.sentences.length)}</div>
         <div class="progress-track">
           <div class="progress-fill" style="width:${Math.round((idx / drillSession.sentences.length) * 100)}%"></div>
         </div>
       </div>
       <div class="session-actions">
-        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('drill')" title="退出">${ICONS.x}</button>
+        <button class="btn btn-sm btn-secondary btn-icon" onclick="setPage('drill')" title="${t('exitTitle')}">${ICONS.x}</button>
       </div>
     </div>
     <div class="player-bar">
-      <button class="player-btn" id="btn-play" title="播放">
+      <button class="player-btn" id="btn-play" title="${t("playTitle")}">
         <svg class="play-icon" viewBox="0 0 24 24" width="24" height="24"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         <svg class="pause-icon" viewBox="0 0 24 24" width="24" height="24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
       </button>
       <div class="speed-control">
-        <label>语速</label>
+        <label>${t('speedLabel')}</label>
         <input type="range" id="rate" min="0.5" max="1.5" step="0.1" value="1">
         <span class="speed-value" id="rate-value">1.0x</span>
       </div>
@@ -1851,13 +2053,13 @@ function renderDrillPractice(container) {
     </div>
     <div class="dictation-area">
       <div class="form-group" style="margin-bottom:0">
-        <label style="margin-bottom:10px">请听写整句（只有一次机会）</label>
-        <textarea class="dictation-full" id="drill-input" placeholder="听完后在此输入完整句子..."></textarea>
-        <div class="keyboard-hint"><kbd>Enter</kbd> 开始输入 · <kbd>Space</kbd> 播放/暂停 · <kbd>Shift</kbd>+<kbd>Space</kbd> 在输入框内播放/暂停 · <kbd>Ctrl</kbd>+<kbd>Enter</kbd> 提交检查</div>
+        <label style="margin-bottom:10px">${t('drillOnlyOnce')}</label>
+        <textarea class="dictation-full" id="drill-input" placeholder="${t('fullInputPlaceholder')}"></textarea>
+        <div class="keyboard-hint"><kbd>${t('enter')}</kbd> ${t('startInput')} · <kbd>${t('space')}</kbd> ${t('playPause')} · <kbd>${t('shift')}</kbd>+<kbd>${t('space')}</kbd> ${t('inInputField')} ${t('playPause')} · <kbd>${t('ctrl')}</kbd>+<kbd>${t('enter')}</kbd> ${t('submitCheck')}</div>
       </div>
     </div>
     <div class="action-bar">
-      <button class="btn btn-primary" id="btn-drill-check">${ICONS.check}提交核对</button>
+      <button class="btn btn-primary" id="btn-drill-check">${ICONS.check}${t('submitCheck')}</button>
     </div>
   `;
   container.appendChild(card);
@@ -1909,7 +2111,7 @@ function renderDrillPractice(container) {
   function doDrillCheck() {
     const fullText = input.value.trim();
     if (!fullText) { showToast('请输入内容'); return; }
-    const userWords = fullText.split(/\s+/);
+    const userWords = tokenizeChinese(fullText);
     const matchedSet = diffWords(words, userWords);
     const correctIndices = [];
     const wrongIndices = [];
@@ -1971,7 +2173,7 @@ function renderDrillPractice(container) {
 function finishDrill() {
   // Mistakes are updated sentence-by-sentence in doDrillCheck
   const totalCorrect = drillSession.results.reduce((s, r) => s + r.correctIndices.length, 0);
-  const totalWords = drillSession.results.reduce((s, r) => s + r.sentence.trim().split(/\s+/).length, 0);
+  const totalWords = drillSession.results.reduce((s, r) => s + tokenizeChinese(r.sentence).length, 0);
   const accuracy = totalWords ? Math.round(totalCorrect / totalWords * 100) : 0;
 
   const main = document.getElementById('main');
@@ -1979,16 +2181,16 @@ function finishDrill() {
   const card = document.createElement('div');
   card.className = 'card result-card';
   card.innerHTML = `
-    <h2>${accuracy === 100 ? '🎉 专项训练完成' : '专项训练完成'}</h2>
-    <p>薄弱词汇已更新，正确率 ${accuracy}%</p>
+    <h2>${accuracy === 100 ? '🎉 ' + t('drillComplete') : t('drillComplete')}</h2>
+    <p>${t('drillResultDesc', accuracy)}</p>
     <div class="result-stats">
-      <div class="stat-item"><div class="stat-value">${totalCorrect}</div><div class="stat-label">正确词</div></div>
-      <div class="stat-item"><div class="stat-value">${totalWords - totalCorrect}</div><div class="stat-label">错误词</div></div>
-      <div class="stat-item"><div class="stat-value">${accuracy}%</div><div class="stat-label">正确率</div></div>
+      <div class="stat-item"><div class="stat-value">${totalCorrect}</div><div class="stat-label">${t('correctWords')}</div></div>
+      <div class="stat-item"><div class="stat-value">${totalWords - totalCorrect}</div><div class="stat-label">${t('wrongWords')}</div></div>
+      <div class="stat-item"><div class="stat-value">${accuracy}%</div><div class="stat-label">${t('correctRate')}</div></div>
     </div>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <button class="btn btn-primary" onclick="setPage('drill')">${ICONS.target}再来一轮</button>
-      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}返回</button>
+      <button class="btn btn-primary" onclick="setPage('drill')">${ICONS.target}${t('drillAgain')}</button>
+      <button class="btn btn-secondary" onclick="setPage('home')">${ICONS.home}${t('backToHome')}</button>
     </div>
   `;
   main.appendChild(card);
@@ -1997,32 +2199,36 @@ function finishDrill() {
 }
 
 function renderHelp(container) {
-  const steps = [
-    { num: '1', title: '选择或创建练习', desc: '从资料库按 CEFR 级别挑选课程，或粘贴自己的英文文本创建练习。' },
-    { num: '2', title: '播放与听写', desc: '点击播放按钮听句子，在输入框中写下听到的内容，可调整语速。' },
-    { num: '3', title: '提交检查', desc: '首次输入整句提交，系统用 LCS 算法对齐，正确单词锁定，错误变为空格。' },
-    { num: '4', title: '逐空补全', desc: '在空格里填入正确单词，再次提交，直到全对自动进入下一句。' },
-    { num: '5', title: '查看辅助', desc: '点击「显示原文」可查看完整原文、句子翻译及逐词翻译。' },
-    { num: '6', title: '进度管理', desc: '进度自动保存在浏览器中，关闭页面后可继续。可自由切换上下句。' }
-  ];
-
   const card = document.createElement('div');
   card.className = 'card';
-  let html = `<div class="card-title">使用帮助</div>
-    <div class="card-desc">简单几步，开始高效的英语听写训练。</div>
-    <div style="display:grid;gap:16px">`;
-
-  steps.forEach(s => {
-    html += `<div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
-      <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">${s.num}</div>
-      <div>
-        <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${s.title}</div>
-        <div style="font-size:14px;color:var(--text-secondary);line-height:1.6">${s.desc}</div>
+  let html = `<div class="card-title">${t('helpTitle')}</div>
+    <div class="card-desc">${t('helpHowTo')}</div>
+    <div style="display:grid;gap:16px">
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">1</div>
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${t('helpStep1')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">2</div>
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${t('helpStep2')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">3</div>
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${t('helpStep3')}</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;align-items:flex-start;padding:16px;background:var(--bg);border-radius:var(--radius);border:1px solid var(--border)">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-hover));color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">4</div>
+        <div>
+          <div style="font-weight:600;font-size:15px;margin-bottom:3px;color:var(--text)">${t('helpStep4')}</div>
+        </div>
       </div>
     </div>`;
-  });
-
-  html += `</div>`;
   card.innerHTML = html;
   container.appendChild(card);
 }
