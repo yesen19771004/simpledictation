@@ -1112,10 +1112,16 @@ function getChineseVoices() {
 function pickBestVoice() {
   const cnVoices = getChineseVoices();
   if (cnVoices.length === 0) return null;
-  // 优先选 Google 普通话
+  // 1. 优先选 Microsoft Online (Natural) - 质量最好
+  const msOnline = cnVoices.find(v => /microsoft/i.test(v.name) && /online|natural/i.test(v.name) && /zh-CN/i.test(v.lang));
+  if (msOnline) return msOnline;
+  // 2. 任意 Microsoft 中文语音
+  const ms = cnVoices.find(v => /microsoft/i.test(v.name));
+  if (ms) return ms;
+  // 3. Google 普通话
   const google = cnVoices.find(v => /google/i.test(v.name) && /mandarin|普通话|putonghua|zh/i.test(v.name + ' ' + v.lang));
   if (google) return google;
-  // 其次任意 Google 中文语音
+  // 4. 任意 Google 中文语音
   const anyGoogle = cnVoices.find(v => /google/i.test(v.name));
   if (anyGoogle) return anyGoogle;
   return cnVoices[0];
