@@ -518,6 +518,23 @@ function getTopMistakes(n = 30) {
     .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
     .slice(0, n);
 }
+
+// 将字符级未匹配索引转换为词级错误词（日语）
+function getMistakeWords(sentence, matchedSet) {
+  var tokens = tokenizeJapaneseWords(sentence);
+  var result = [];
+  for (var t = 0; t < tokens.length; t++) {
+    var tok = tokens[t];
+    if (tok.word.length < 2) continue;
+    var hasError = false;
+    for (var i = tok.start; i < tok.end; i++) {
+      if (!matchedSet.has(i)) { hasError = true; break; }
+    }
+    if (hasError) result.push(tok.word);
+  }
+  return result;
+}
+
 function getMistakeWordsForPrompt(maxWords = 30) {
   const m = loadMistakes();
   let words = Object.values(m)
@@ -683,6 +700,36 @@ function tokenizeChinese(text) {
   // 使用 Array.from 正确处理 Unicode 代理对
   const chars = Array.from(text.trim());
   return chars.filter(c => c.trim().length > 0);
+}
+
+// 日语启发式分词：按汉字块/假名块切分
+function tokenizeJapaneseWords(text) {
+  if (!text) return [];
+  var result = [];
+  var i = 0;
+  while (i < text.length) {
+    var ch = text[i];
+    // 汉字块 (CJK Unified Ideographs)
+    if (/[\u4e00-\u9fff々〆〤]/.test(ch)) {
+      var j = i + 1;
+      while (j < text.length && /[\u4e00-\u9fff々〆〤]/.test(text[j])) j++;
+      result.push({ word: text.slice(i, j), start: i, end: j });
+      i = j;
+    }
+    // 假名块 (平假名 + 片假名)
+    else if (/[\u3040-\u309f\u30a0-\u30ff]/.test(ch)) {
+      var j = i + 1;
+      while (j < text.length && /[\u3040-\u309f\u30a0-\u30ff]/.test(text[j])) j++;
+      result.push({ word: text.slice(i, j), start: i, end: j });
+      i = j;
+    }
+    // 其他（标点、英文字母等）
+    else {
+      result.push({ word: ch, start: i, end: i + 1 });
+      i++;
+    }
+  }
+  return result;
 }
 
 function showToast(msg) {
@@ -1350,9 +1397,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
-      // Record unmatched words as mistakes
-      const unmatchedWords = words.filter((_, i) => !matchedSet.has(i));
-      addMistakeWords(unmatchedWords);
+      // Record unmatched words as mistakes (word-level)
+      const mistakeWords = getMistakeWords(sentence, matchedSet);
+      if (mistakeWords.length) addMistakeWords(mistakeWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -1394,9 +1441,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
-      // Record still-unmatched words as mistakes
-      const unmatchedWords = words.filter((_, i) => !lockedSet.has(i));
-      addMistakeWords(unmatchedWords);
+      // Record still-unmatched words as mistakes (word-level)
+      const mistakeWords = getMistakeWords(sentence, lockedSet);
+      if (mistakeWords.length) addMistakeWords(mistakeWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();

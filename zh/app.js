@@ -518,6 +518,24 @@ function getTopMistakes(n = 30) {
     .sort((a, b) => b.count - a.count || b.lastAt - a.lastAt)
     .slice(0, n);
 }
+
+// 将字符级未匹配索引转换为词级错误词
+function getMistakeWords(sentence, matchedSet) {
+  if (!window.HSK_DICT) return [];
+  const tokens = window.HSK_DICT.tokenizeWords(sentence);
+  const result = [];
+  for (var t = 0; t < tokens.length; t++) {
+    var tok = tokens[t];
+    if (tok.word.length < 2) continue;
+    var hasError = false;
+    for (var i = tok.start; i < tok.end; i++) {
+      if (!matchedSet.has(i)) { hasError = true; break; }
+    }
+    if (hasError) result.push(tok.word);
+  }
+  return result;
+}
+
 function getMistakeWordsForPrompt(maxWords = 30) {
   const m = loadMistakes();
   let words = Object.values(m)
@@ -1348,9 +1366,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
-      // Record unmatched words as mistakes
-      const unmatchedWords = words.filter((_, i) => !matchedSet.has(i));
-      addMistakeWords(unmatchedWords);
+      // Record unmatched words as mistakes (word-level)
+      const mistakeWords = getMistakeWords(sentence, matchedSet);
+      if (mistakeWords.length) addMistakeWords(mistakeWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: {} };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
@@ -1392,9 +1410,9 @@ function renderPractice(container) {
         renderMain();
         return;
       }
-      // Record still-unmatched words as mistakes
-      const unmatchedWords = words.filter((_, i) => !lockedSet.has(i));
-      addMistakeWords(unmatchedWords);
+      // Record still-unmatched words as mistakes (word-level)
+      const mistakeWords = getMistakeWords(sentence, lockedSet);
+      if (mistakeWords.length) addMistakeWords(mistakeWords);
       progress.sentenceStates[idx] = { lockedIndices: newLocked, gapDrafts: newDrafts };
       updateSessionProgress(activeSessionId, progress);
       renderMain();
