@@ -1,4 +1,4 @@
-const LANG_PREFIX = 'zh_';
+const LANG_PREFIX = 'jp_';
 const STORAGE_KEY = LANG_PREFIX + 'dictation-app-v1';
 const PRESET_KEY = LANG_PREFIX + 'dictation-preset-imported-v1';
 const LIBRARIES_KEY = LANG_PREFIX + 'dictation-libraries-v1';
@@ -15,7 +15,7 @@ const LANG_STRINGS = {
     help: '帮助',
     newDictation: '新建听写',
     emptyTitle: '开始你的第一次听写',
-    emptyDesc: '从资料库选择适合你的课程，或者粘贴自己的中文文本开始练习。',
+    emptyDesc: '从资料库选择适合你的课程，或者粘贴自己的日语原文开始练习。',
     browseLibrary: '浏览资料库',
     importFromLibrary: '从资料库导入',
     importBackup: '已有备份？可导入历史数据',
@@ -42,11 +42,11 @@ const LANG_STRINGS = {
     shift: 'Shift',
     ctrl: 'Ctrl',
     createDictation: '新建听写',
-    createDictationDesc: '输入中文原文，系统会自动按句切分，生成听写练习。',
+    createDictationDesc: '输入日语原文，系统会自动按句切分，生成听写练习。',
     titleLabel: '标题',
     titlePlaceholder: '给这次练习起个名字',
-    textLabel: '中文原文',
-    textPlaceholder: '在此粘贴或输入中文文本……',
+    textLabel: '日语原文',
+    textPlaceholder: '在此粘贴或输入日语文本……',
     generateBtn: '生成练习',
     fullMatch: '全对！进入下一句',
     correctNofM: (correct, total) => `对了 ${correct}/${total} 个字符，继续补全`,
@@ -112,7 +112,7 @@ const LANG_STRINGS = {
     drillDaysAgo: n => `${n} 天前`,
     helpTitle: '帮助',
     helpHowTo: '如何使用',
-    helpStep1: '从资料库选择一篇文章，或输入自己的中文文本创建听写',
+    helpStep1: '从资料库选择一篇文章，或输入自己的日语原文创建听写',
     helpStep2: '播放句子，在输入框中写下你听到的内容',
     helpStep3: '提交检查，正确的字符自动锁定，错误的变为空格',
     helpStep4: '补全空格后再次提交，全对自动进入下一句',
@@ -619,7 +619,7 @@ const ICONS = {
 };
 
 function splitSentences(text) {
-  // 中文句末标点：。！？； 也支持英文标点：.!?
+  // 日语句末标点：。！？； 也支持英文标点：.!?
   const raw = text.split(/(?<=[。！？；!?])\s*/).filter(s => s.trim().length > 0);
 
   if (raw.length <= 1) {
@@ -643,7 +643,7 @@ function splitSentences(text) {
   return result.length > 0 ? result : [text.trim()];
 }
 
-// 中文数字映射
+// 日语数字映射
 const CN_NUM_WORDS = {
   '零': '0', '〇': '0', '○': '0',
   '一': '1', '二': '2', '三': '3', '四': '4',
@@ -655,15 +655,15 @@ function normalizeWord(word) {
   let w = word.trim();
   if (CN_NUM_WORDS[w] !== undefined) return CN_NUM_WORDS[w];
   if (/^\d+$/.test(w)) return w;
-  // 中文：不做标点剥离，原样比对（用户漏写标点会留空待补）
+  // 日语：不做标点剥离，原样比对（用户漏写标点会留空待补）
   return w;
 }
 
 // 尝试从 tokens[start] 开始解析一个数字短语（如 "nineteen eighty-five" → "1985"）
 // 返回 { value: string, consumed: number } 或 null
-// 中文数字短语解析（简化版本）
+// 日语数字短语解析（简化版本）
 function tryParseNumberPhrase(tokens, start) {
-  // 对于中文听写，数字处理简化：单字符数字映射由 normalizeWord 处理
+  // 对于日语听写，数字处理简化：单字符数字映射由 normalizeWord 处理
   // 这里不做复杂短语解析，直接返回 null 让每个字符单独处理
   return null;
 }
@@ -677,7 +677,7 @@ function stripPunctuation(word) {
   return word.trim().replace(/^[^\w\u4e00-\u9fff]+|[^\w\u4e00-\u9fff]+$/g, '');
 }
 
-// 中文分词：按字符分割（保留标点）
+// 日语分词：按字符分割（保留标点）
 function tokenizeChinese(text) {
   if (!text) return [];
   // 使用 Array.from 正确处理 Unicode 代理对
@@ -1098,36 +1098,38 @@ function escapeHtml(text) {
 
 let selectedVoice = null;
 
-function getChineseVoices() {
+function getJapaneseVoices() {
   if (!window.speechSynthesis) return [];
   return (window.speechSynthesis.getVoices() || []).filter(v =>
-    v.lang && (v.lang.toLowerCase().startsWith('zh') || v.lang.toLowerCase().startsWith('cmn'))
+    v.lang && v.lang.toLowerCase().startsWith('ja')
   );
 }
 
 function pickBestVoice() {
-  const cnVoices = getChineseVoices();
-  if (cnVoices.length === 0) return null;
-  // 1. Microsoft Online (Natural) - 质量最好
-  const msOnline = cnVoices.find(v => /microsoft/i.test(v.name) && /online|natural/i.test(v.name) && /zh-CN/i.test(v.lang));
-  if (msOnline) return msOnline;
-  // 2. Google 普通话
-  const google = cnVoices.find(v => /google/i.test(v.name) && /mandarin|普通话|putonghua|zh/i.test(v.name + ' ' + v.lang));
-  if (google) return google;
-  // 3. 任意 Microsoft zh-CN 语音
-  const ms = cnVoices.find(v => /microsoft/i.test(v.name) && /zh-CN/i.test(v.lang));
-  if (ms) return ms;
-  // 4. 任意 Google 中文语音
-  const anyGoogle = cnVoices.find(v => /google/i.test(v.name));
-  if (anyGoogle) return anyGoogle;
-  return cnVoices[0];
+  const jaVoices = getJapaneseVoices();
+  if (jaVoices.length > 0) {
+    // 1. Microsoft Online (Natural) 日本語
+    const msOnline = jaVoices.find(v => /microsoft/i.test(v.name) && /online|natural/i.test(v.name) && /ja/i.test(v.lang));
+    if (msOnline) return msOnline;
+    // 2. Google 日本語
+    const google = jaVoices.find(v => /google/i.test(v.name) && /ja|japanese|nihongo/i.test(v.name + ' ' + v.lang));
+    if (google) return google;
+    // 3. 任意 Microsoft 日语语音
+    const ms = jaVoices.find(v => /microsoft/i.test(v.name) && /ja/i.test(v.lang));
+    if (ms) return ms;
+    // 4. 任意 Google 日语语音
+    const anyGoogle = jaVoices.find(v => /google/i.test(v.name));
+    if (anyGoogle) return anyGoogle;
+    return jaVoices[0];
+  }
+  return null;
 }
 
 function initVoices() {
   selectedVoice = pickBestVoice();
 }
 
-// 中文听写不需要音色选择
+// 日语听写不需要音色选择
 function buildVoiceToggleHTML() { return ''; }
 function attachVoiceToggleListeners() {}
 
@@ -1150,9 +1152,9 @@ function speak(text, rate = 1.0, onEnd) {
   u.rate = rate;
   if (selectedVoice) {
     u.voice = selectedVoice;
-    u.lang = selectedVoice.lang || 'zh-CN';
+    u.lang = selectedVoice.lang || 'ja-JP';
   } else {
-    u.lang = 'zh-CN';
+    u.lang = 'ja-JP';
   }
   if (onEnd) {
     u.onend = onEnd;
@@ -1550,8 +1552,14 @@ function renderLibrary(container) {
     html += `</div>`;
 
     // 动态级别列表
+    const jlptOrder = ['JLPT N5','JLPT N4','JLPT N3','JLPT N2','JLPT N1'];
     const hskOrder = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
     const displayLevels = [...new Set(lessons.map(l => l.level).filter(Boolean))].sort((a, b) => {
+      const ja = jlptOrder.indexOf(a);
+      const jb = jlptOrder.indexOf(b);
+      if (ja !== -1 && jb !== -1) return ja - jb;
+      if (ja !== -1) return -1;
+      if (jb !== -1) return 1;
       const ia = hskOrder.indexOf(a);
       const ib = hskOrder.indexOf(b);
       if (ia !== -1 && ib !== -1) return ia - ib;
@@ -1580,7 +1588,7 @@ function renderLibrary(container) {
         if (!groups[lv]) return;
         html += `<div class="level-section" style="margin-bottom:24px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-            <span class="level-badge level-${lv.toLowerCase()}">${lv}</span>
+            <span class="level-badge level-${lv.toLowerCase().replace(/\s+/g, '-')}">${lv}</span>
             <span style="font-size:13px;color:var(--text-muted)">${t('countLessons', groups[lv].length)}</span>
           </div>
           <div class="session-list">`;
@@ -1787,8 +1795,8 @@ function renderDrill(container) {
   const savedLevel = (() => {
     try { return localStorage.getItem(LANG_PREFIX + 'dictation-drill-level') || ''; } catch { return ''; }
   })();
-  const levels = ['HSK1','HSK2','HSK3','HSK4','HSK5','HSK6'];
-  const defaultLevel = savedLevel && levels.includes(savedLevel) ? savedLevel : 'HSK3';
+  const levels = ['JLPT N5','JLPT N4','JLPT N3','JLPT N2','JLPT N1'];
+  const defaultLevel = savedLevel && levels.includes(savedLevel) ? savedLevel : 'JLPT N5';
 
   const MAX_PROMPT_WORDS = 30;
   const promptWords = getMistakeWordsForPrompt(MAX_PROMPT_WORDS);
@@ -1800,12 +1808,14 @@ function renderDrill(container) {
       HSK1: '使用HSK1级词汇（约150词），极简单句，适合零起点学习者',
       HSK2: '使用HSK2级词汇（约300词），简单句型，句子较短',
       HSK3: '使用HSK3级词汇（约600词），中等难度，句子结构适中',
-      HSK4: '使用HSK4级词汇（约1200词），较丰富词汇，包含复合句',
-      HSK5: '使用HSK5级词汇（约2500词），较高级词汇和复杂句型',
-      HSK6: '使用HSK6级词汇（约5000词），高级词汇，句式复杂多变'
+      'JLPT N5': '使用JLPT N5级词汇，基础日语，简短句子',
+      'JLPT N4': '使用JLPT N4级词汇，日常会话水平的日语',
+      'JLPT N3': '使用JLPT N3级词汇，较丰富的日语表达',
+      'JLPT N2': '使用JLPT N2级词汇，较高级日语和复杂句型',
+      'JLPT N1': '使用JLPT N1级词汇，高级日语，句式复杂多变'
     };
     if (!promptWords.length) return '';
-    return `请写一段自然流畅的中文短文，尽量包含以下词语：${promptWords.join('、')}。这些词语是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。\n\n文章难度要求：HSK ${level} 级别。${levelDesc[level]}。短文长度适中（约 100-200 字），主题围绕中国文化，语气自然即可。`;
+    return `请写一段自然流畅的日语短文，尽量包含以下词语：${promptWords.join('、')}。这些词语是我正在听写训练中的重点词汇，请确保它们在语境中自然出现。\n\n文章难度要求：${level} 级别。${levelDesc[level] || ''}。短文长度适中（约 100-200 字），主题围绕日本文化，语气自然即可。`;
   }
 
   const promptText = buildPromptText(defaultLevel);
